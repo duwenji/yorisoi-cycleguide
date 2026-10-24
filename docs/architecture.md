@@ -28,7 +28,7 @@ flowchart LR
 
   subgraph RIDE["常駐処理（ride）"]
     RideService["RideService<br/>位置・判定・読み上げ・通知"]
-    EarphoneNotice["EarphoneNotice<br/>イヤホンの注意"]
+    EarphoneNotice["EarphoneWatch・EarphoneRule<br/>イヤホンの注意"]
     MediaButtons["MediaButtons<br/>止める・もう一度（段階 3）"]
   end
 
@@ -57,7 +57,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Loc["位置の更新<br/>2 秒・5 m ごと"] --> Motion
+  Loc["位置の更新<br/>2 秒ごと（止まっていても）"] --> Motion
   Motion["Motion<br/>動いている／信号待ち／休憩"] --> Talk
   Tick["タイマー 5 秒"] --> Talk
   Talk["<b>RideDecider.decide()</b><br/>① 天気の急変（安全）<br/>② 日の入り・ライト（安全）<br/>── ここから話さない場面を守る ──<br/>③ チャンネルを切り替えた直後の一言<br/>④ 前方の見どころ（動いているとき）<br/>⑤ 取っておいた話（止まったとき）<br/>⑥ ルートから外れた（段階 3）<br/>⑦ 坂の予告（段階 3）<br/>── ここから雑談の間隔を守る ──<br/>⑧ 施設の案内（段階 2）<br/>⑨ 休憩の話（休憩のとき）<br/>⑩ 距離・時間の区切り"]
@@ -122,7 +122,7 @@ flowchart LR
 
 - `MainActivity` は `Motion` を見て、`MOVING` のときは `RidingScreen`（「走行中」とだけ出す暗い画面）にします。`FLAG_KEEP_SCREEN_ON` は付けません
 - 常駐の通知は、`MOVING` の間は操作のボタンを外した形に差し替えます
-- `EarphoneNotice` は `AudioDeviceCallback` で Bluetooth のイヤホンを見つけ、止まっているときに一度、注意を読み上げてカードに出します。走行を始める前の注意は、開始の画面に出します
+- `EarphoneWatch` は `AudioDeviceCallback` でイヤホン（Bluetooth・有線・USB）を見つけます。つながっていれば、止まっているときに走行ごとに一度、注意を読み上げます（`EarphoneRule`）。初めて走り始める前の注意は、開始の画面のダイアログで出します
 
 ### 段階 3 の部品
 
@@ -146,10 +146,10 @@ flowchart LR
 | パッケージ | 役割 | 主なファイル |
 |---|---|---|
 | `ui` | 画面と ViewModel | MainScreen, RidingScreen, SettingsScreen, HistoryScreen |
-| `ride` | 常駐のサービス、イヤホンの注意、メディアボタン | RideService, EarphoneNotice, MediaButtons |
-| `companion` | 判定とその材料 | RideDecider, RideSession, Motion, Ahead, QuietZones, SpeechBudget, DeferredTalk |
+| `ride` | 常駐のサービス、イヤホンの注意、メディアボタン | RideService, EarphoneWatch, EarphoneRule, MediaButtons |
+| `companion` | 判定とその材料、定型の話（AI で文を作るまでの話と、安全の案内の文） | RideDecider, RideSession, Motion, Ahead, QuietZones, SpeechBudget, DeferredTalk, Lines |
 | `style` | 走り方と調整 | RideStyle, RideStyles, StyleValues |
-| `settings` | 設定の保存 | SettingsRepository |
+| `settings` | 設定の保存（走り方・走り方ごとの値の変更・チャンネル・イヤホンの注意を出したか） | SettingsRepository |
 | `history` | 走行の履歴（段階 2） | RideHistory |
 | `diagnostics` | 開発者モードの記録 | RideDiagnostics |
 | (root) | 共有部品の生成、通知チャンネルの登録 | CycleApp |

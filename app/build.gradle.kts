@@ -43,12 +43,18 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
+    // Play services pull in a Fragment older than 1.3, too old for the ActivityResult API
+    // (lint fails release builds with InvalidFragmentVersionForActivityResult).
+    implementation(libs.androidx.fragment)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.service)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.play.services.location)
 
     implementation(project(":prompts"))
     implementation(libs.yorisoi.kit.geo)
     implementation(libs.yorisoi.kit.companion)
+    implementation(libs.yorisoi.kit.voice)
 
     testImplementation(libs.junit)
     // The real org.json; Android's is a stub in local unit tests.

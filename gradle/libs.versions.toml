@@ -5,7 +5,9 @@ kotlin = "2.2.0"
 composeBom = "2025.06.00"
 coreKtx = "1.16.0"
 activityCompose = "1.10.1"
+fragment = "1.8.8"
 lifecycle = "2.9.1"
+playServicesLocation = "21.3.0"
 coroutines = "1.10.2"
 json = "20240303"
 junit = "4.13.2"
@@ -20,9 +22,12 @@ compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview"
 compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-fragment = { module = "androidx.fragment:fragment", version.ref = "fragment" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-lifecycle-service = { module = "androidx.lifecycle:lifecycle-service", version.ref = "lifecycle" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 json = { module = "org.json:json", version.ref = "json" }
 junit = { module = "junit:junit", version.ref = "junit" }
 yorisoi-core-format = { module = "io.github.duwenji.yorisoi:core-format", version.ref = "yorisoi" }
@@ -30,6 +35,7 @@ yorisoi-core-prompt = { module = "io.github.duwenji.yorisoi:core-prompt", versio
 yorisoi-kit-channel = { module = "io.github.duwenji.yorisoi:kit-channel", version.ref = "yorisoi" }
 yorisoi-kit-geo = { module = "io.github.duwenji.yorisoi:kit-geo", version.ref = "yorisoi" }
 yorisoi-kit-companion = { module = "io.github.duwenji.yorisoi:kit-companion", version.ref = "yorisoi" }
+yorisoi-kit-voice = { module = "io.github.duwenji.yorisoi:kit-voice", version.ref = "yorisoi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

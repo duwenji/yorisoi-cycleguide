@@ -1,5 +1,11 @@
-* text=auto eol=lf
+# Normalise line endings in the repository; keep gradlew runnable on macOS/Linux/CI.
+* text=auto
+gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
 *.png binary
-*.jks binary
+*.apk binary
+# Channel packages and prompts must be LF: the channel format (API-CHANNEL-PACKAGE) rejects CR,
+# and the app ships these files byte for byte. Without this, a Windows checkout with
+# core.autocrlf=true builds an APK whose built-in channels fail their own checks.
+prompts/src/main/resources/** text eol=lf

@@ -6,3 +6,24 @@
 
 - [要件定義](docs/requirements.md)
 - [設計](docs/architecture.md)
+
+## 構成
+
+| モジュール | 中身 |
+|---|---|
+| `:app` | 画面と常駐の処理 |
+| `:prompts`（JVM） | プロンプト・パック。組み込みのチャンネル（`prompts/src/main/resources/cycleguide/channels/`） |
+
+## ビルド
+
+platform は GitHub Packages から読みます。読むには `read:packages` のトークンが要ります（`~/.gradle/gradle.properties` の `gpr.user`・`gpr.key`、または環境変数 `GITHUB_ACTOR`・`GITHUB_TOKEN`）。
+
+```
+./gradlew test lint assembleDebug
+```
+
+platform とアプリを同時に直すときは、platform のソースに差し替えます（composite build）。
+
+```
+./gradlew assembleDebug -Pyorisoi.platformDir=../yorisoi-platform
+```

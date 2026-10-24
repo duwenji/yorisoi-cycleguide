@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "id": "standard",
+  "version": 1,
+  "name": "標準",
+  "summary": "走る先の見どころと、天気・日の入りなど大事なことを短くお知らせします",
+  "lang": "ja",
+  "activities": ["cycle"],
+  "genres": ["general"],
+  "greeting": "出発しましょう。周りの音が聞こえる状態で、安全に走ってください。",
+  "talk": {
+    "level": "normal",
+    "events": { "spot": true, "revisit": true, "milestone": true, "rest": true, "start": true, "finish": true }
+  },
+  "spots": { "prefer": [], "skip": [] },
+  "guide": { "length": "short" },
+  "mood": { "tone": true, "sound": "auto" }
+}

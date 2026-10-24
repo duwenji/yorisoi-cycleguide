@@ -47,6 +47,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(project(":prompts"))
+    implementation(libs.yorisoi.kit.geo)
+    implementation(libs.yorisoi.kit.companion)
 
     testImplementation(libs.junit)
     // The real org.json; Android's is a stub in local unit tests.

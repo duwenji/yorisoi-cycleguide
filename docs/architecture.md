@@ -33,8 +33,8 @@ flowchart LR
   end
 
   subgraph APP["共有部品（CycleApp.onCreate() で生成）"]
-    style["style<br/>RideStyle・RideStyles・StyleSettings"]
-    companion["companion<br/>Motion・Ahead・QuietZones・SpeechBudget<br/>RideDecider・RideSession・Deferred"]
+    style["style<br/>RideStyle・RideStyles・StyleValues"]
+    companion["companion<br/>Motion・Ahead・QuietZones・SpeechBudget<br/>RideDecider・RideSession・DeferredTalk"]
     channel["kit-channel（platform に新設）<br/>Station・StationPrompts・StationRepository"]
     guide["kit-llm<br/>LlmClient・RelayClient・OperatorAi・OutputCheck・AiUsage"]
     geo["kit-geo<br/>SpotRepository・Overpass・天気・日の入り・地図<br/>前方の探し方・信号・自転車のルート"]
@@ -65,7 +65,7 @@ flowchart LR
   Budget --> Compose["文を作る<br/>AI に上限の字数を渡す"]
   Compose --> Fit{上限に収まる?}
   Fit -- はい --> Speak["読み上げ・カード・記録"]
-  Fit -- いいえ --> Deferred["Deferred<br/>止まったときまで取っておく"]
+  Fit -- いいえ --> Deferred["DeferredTalk<br/>止まったときまで取っておく"]
 ```
 
 ゲート（`RideGate`）は 4 つです。
@@ -83,25 +83,10 @@ flowchart LR
 
 ### 走り方（`style`）
 
-```kotlin
-data class RideStyle(
-    val id: String,                 // "pottering" / "long_ride"
-    val label: String,
-    val aheadM: Int,                // 前方を探す距離
-    val spotScale: SpotScale,       // SMALL（小さな見どころも）/ MAJOR（大きな見どころだけ）
-    val spotGapMin: Int,
-    val speech: Map<MotionState, Int>,   // 状態ごとの話の長さの上限（秒）
-    val signalStopSec: Int,
-    val restMin: Int,
-    val facilities: Set<FacilityKind>,
-    val weatherLookaheadMin: Int,
-    val sunsetNoticeMin: Int,
-    val quietSpeedKmh: Int,
-)
-```
+- 走り方（`RideStyle`）は、名前・見どころの選び方（`SpotScale`：小さな見どころも／大きな見どころだけ）・案内する施設（`Amenity`）と、判定の値（`StyleItem` ごとの既定値）を持ちます。値の一覧と範囲は `StyleItem` にあり、要件の「走り方のプリセット」の表の項目に、ひと言の間隔・距離の区切り・天気の予告の間隔・強い雨・日の入りを知らせる最後の時刻を足したものです
 
 - `RideStyles.ALL` にプリセットを並べます。画面と判定はこの一覧だけを読むので、1 件足せばそのまま使えます（F-12・AC-15）
-- アプリ利用者の調整は、SanpoGuide の `Thresholds` と同じ形（項目 → 値、範囲で丸める）で、走り方ごとに保存します
+- アプリ利用者の調整は、SanpoGuide の `Thresholds` と同じ形（項目 → 値、範囲で丸める）の `StyleValues` で、走り方ごとに保存します。話せなくなる組み合わせ（日の入りの時刻の逆転、休憩が信号待ちより短い）は `conflicts()` で設定の画面に出します
 - チャンネルの頻度（`talkLevel`：控えめ・ふつう・おしゃべり）は、間隔に掛ける倍率にします（×2・×1・×0.5）。頻度はエコシステムの語彙のまま、値はアプリが持ちます
 
 ### 動いているかどうか（`Motion`）
@@ -109,24 +94,24 @@ data class RideStyle(
 | 状態 | 条件 |
 |---|---|
 | `MOVING` | 直近の速度（3 点の中央値）が 0.8 m/s 以上。押して歩く速さ（5 km/h ≒ 1.4 m/s）は動いているに入る |
-| `SIGNAL_STOP` | 0.8 m/s 未満が、走り方の `signalStopSec` 以上続いた |
-| `REST` | 0.8 m/s 未満が、走り方の `restMin` 以上続いた |
+| `SIGNAL_STOP` | 0.8 m/s 未満が、走り方の「信号待ちとみなす長さ」（`SIGNAL_STOP_SEC`）以上続いた |
+| `REST` | 0.8 m/s 未満が、走り方の「休憩とみなす長さ」（`REST_MIN`）以上続いた |
 
-- 位置が来ない間（トンネルなど）は、状態を変えません。止まった長さも数えません（AC-26）
+- 位置が 10 秒より長く来ない間（トンネルなど）は、状態を変えません。止まった長さも数えません。そのあとの止まった長さは、次に来た位置から数えます（AC-26）
 - 精度の悪い位置（50 m より悪い）は使いません（SanpoGuide と同じ）
 
 ### 話の長さ（`SpeechBudget`）
 
 - 上限の字数 = 走り方の秒数 × 1 秒あたりの字数。1 秒あたりの字数は最初は 6 字にして、開発者モードの記録（読み上げの開始・終了の時刻）で測って直します
 - 上限の字数は、プロンプトのスロット（`{{max_chars}}`）で AI に渡します
-- 返事が上限を超えたら、読まずに `Deferred` に入れます。`Deferred` の話は、次に止まったときに、そのときの上限に収まれば話します。見どころから 500 m 離れたもの、10 分たったものは捨てます
+- 返事が上限を超えたら、読まずに `DeferredTalk` として取っておきます。取っておいた話は、次に止まったときに、そのときの上限に収まれば話します（信号待ちで収まらなければ、休憩まで待ちます）。見どころから 500 m 離れたもの、10 分たったものは捨てます（`DeferredTalk.prune`）
 
 ### 前方（`Ahead`）
 
 - 進む向きは、`Location.bearing`（速度が 1 m/s 以上のとき）と、直近 30 m の移動の向きから決めます
-- 前方の範囲は、向きの左右 45° の扇形で、走り方の `aheadM` までです
-- 着くまでの時間 = 距離 ÷ 速度。「着くまでの時間 − 話の秒数 − 余裕（50 m ぶん）」が 0 を切る前に話し始めます。間に合わない見どころは、取っておく（`Deferred`）に回します
-- スポットの取得は、現在地ではなく前方の点（現在地から向きに `aheadM` の半分進んだ点）を中心に行います。中心が 200 m 動いたら取り直します
+- 前方の範囲は、向きの左右 45° の扇形で、走り方の「前方を探す距離」（`AHEAD_M`）までです
+- 残りの時間 =（距離 − 50 m）÷ 速度 − 話の秒数 − 文を作る時間（5 秒）。残りの時間が 15 秒以下になったら話し始め、0 を切っていたら間に合わないので取っておきます（`Ahead.timing`。`RideDecision.Defer`）
+- スポットの取得は、現在地ではなく前方の点（現在地から向きに「前方を探す距離」の半分進んだ点）を中心に行います（kit-geo の `SpotRepository` の `searchCenter`）。中心が 300 m 動いたら取り直します
 
 ### 話さない場面（`QuietZones`）
 
@@ -162,8 +147,8 @@ data class RideStyle(
 |---|---|---|
 | `ui` | 画面と ViewModel | MainScreen, RidingScreen, SettingsScreen, HistoryScreen |
 | `ride` | 常駐のサービス、イヤホンの注意、メディアボタン | RideService, EarphoneNotice, MediaButtons |
-| `companion` | 判定とその材料 | RideDecider, RideSession, Motion, Ahead, QuietZones, SpeechBudget, Deferred |
-| `style` | 走り方と調整 | RideStyle, RideStyles, StyleSettings |
+| `companion` | 判定とその材料 | RideDecider, RideSession, Motion, Ahead, QuietZones, SpeechBudget, DeferredTalk |
+| `style` | 走り方と調整 | RideStyle, RideStyles, StyleValues |
 | `settings` | 設定の保存 | SettingsRepository |
 | `history` | 走行の履歴（段階 2） | RideHistory |
 | `diagnostics` | 開発者モードの記録 | RideDiagnostics |
@@ -187,6 +172,7 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 
 | 段階 | 先 | 変更 |
 |---|---|---|
+| 1 | kit-geo | 天気の急変の判定（`WeatherChangeDetector`。SanpoGuide から移し、先読みの時間と強い雨の量を引数にする） |
 | 1 | kit-geo | 前方を中心にした取得（`SpotRepository` に取得の中心を渡せるようにする。渡さなければ今と同じ）、信号の位置の取得（任意。SanpoGuide は使わない） |
 | 1 | core-format | `cycleguide` を含む版を公開する（PR #29 は版を上げていない） |
 | 1 | yorisoi-console | アプリの一覧（`ecosystem.ts`）・中継の受け付けるパッケージ（`relay-config.ts`）・段階の版（`appStageVersions`）に CycleGuide を足す（要件 X-5） |

@@ -5,3 +5,4 @@
 ## 文書
 
 - [要件定義](docs/requirements.md)
+- [設計](docs/architecture.md)

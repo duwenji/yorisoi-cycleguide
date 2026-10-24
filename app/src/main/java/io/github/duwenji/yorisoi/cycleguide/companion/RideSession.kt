@@ -1,0 +1,110 @@
+package io.github.duwenji.yorisoi.cycleguide.companion
+
+import io.github.duwenji.yorisoi.kit.geo.LatLon
+import io.github.duwenji.yorisoi.kit.geo.Poi
+import io.github.duwenji.yorisoi.kit.geo.RouteGeometry
+import io.github.duwenji.yorisoi.kit.geo.weather.WeatherChangeKind
+
+/**
+ * One ride so far: where the rider has been, what was said and when, and what was kept for a
+ * stop. Plain state, no Android types; the ride service updates it and reads it into a
+ * [RideSituation].
+ */
+class RideSession(val startedAt: Long) {
+    /** The last points of the track, oldest first, for the way the rider goes ([Ahead.heading]). */
+    val track: List<LatLon> get() = _track
+    private val _track = ArrayDeque<LatLon>()
+
+    var distanceM = 0.0
+        private set
+
+    var lastSpokeAt = 0L
+        private set
+    var lastSpotTalkAt = 0L
+        private set
+    var lastMilestoneDistanceM = 0.0
+        private set
+    var restRemarked = false
+        private set
+    var sunsetWarned = false
+        private set
+    val weatherWarnedAt: Map<WeatherChangeKind, Long> get() = _weatherWarnedAt
+    private val _weatherWarnedAt = mutableMapOf<WeatherChangeKind, Long>()
+
+    /** The new channel's greeting, said before anything else; null once said. */
+    var pendingGreeting: String? = null
+
+    private var switchedAt: Long? = null
+
+    /** Spots talked about, or kept for a stop, on this ride, by id. */
+    private val talkedSpots = mutableSetOf<String>()
+
+    val deferred: List<DeferredTalk> get() = _deferred
+    private val _deferred = mutableListOf<DeferredTalk>()
+
+    /** A location fix; small steps (GPS jitter while standing) don't add to the distance. */
+    fun onLocation(p: LatLon) {
+        val last = _track.lastOrNull()
+        if (last != null) {
+            val step = RouteGeometry.distanceM(last, p)
+            if (step < MIN_STEP_M) return
+            distanceM += step
+        }
+        _track.addLast(p)
+        while (_track.size > TRACK_POINTS) _track.removeFirst()
+    }
+
+    fun alreadyTalked(poi: Poi): Boolean = poi.id in talkedSpots
+
+    /** The rider is moving again after a stop: the next rest is remarked on again. */
+    fun onMoving() {
+        restRemarked = false
+    }
+
+    fun switchedChannel(now: Long, greeting: String) {
+        switchedAt = now
+        pendingGreeting = greeting
+    }
+
+    fun justSwitched(now: Long): Boolean = switchedAt?.let { now - it < SWITCH_QUIET_MS } ?: false
+
+    /** Keeps only the kept talks still worth saying. */
+    fun prune(now: Long, here: LatLon?) {
+        val kept = DeferredTalk.prune(_deferred, now, here)
+        _deferred.retainAll(kept.toSet())
+    }
+
+    /** Records that [decision] was carried out at [now] (a line was said, or a spot kept). */
+    fun carriedOut(decision: RideDecision, now: Long) {
+        when (decision) {
+            is RideDecision.WeatherTurn -> _weatherWarnedAt[decision.change.kind] = now
+            is RideDecision.Sunset -> sunsetWarned = true
+            is RideDecision.Greeting -> pendingGreeting = null
+            is RideDecision.Spot -> {
+                talkedSpots += decision.poi.id
+                lastSpotTalkAt = now
+            }
+            is RideDecision.Defer -> {
+                talkedSpots += decision.poi.id
+                _deferred += DeferredTalk(decision.poi, null, now)
+                return
+            }
+            is RideDecision.Deferred -> {
+                _deferred.remove(decision.talk)
+                lastSpotTalkAt = now
+            }
+            is RideDecision.Rest -> restRemarked = true
+            is RideDecision.Milestone -> lastMilestoneDistanceM = distanceM
+            RideDecision.Nothing -> return
+        }
+        lastSpokeAt = now
+    }
+
+    companion object {
+        const val TRACK_POINTS = 30
+        const val MIN_STEP_M = 3.0
+
+        /** After a channel switch, its greeting has the floor this long. */
+        const val SWITCH_QUIET_MS = 60_000L
+    }
+}

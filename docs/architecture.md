@@ -176,10 +176,10 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 | 段階 | 移すもの（SanpoGuide のいまの場所） | 移す先 | 直す抽象 |
 |---|---|---|---|
 | 1 | `guide/OperatorAi`・`guide/OutputCheck`・`settings/AiUsage` | `kit-llm` | `OperatorAi` が読む `BuildConfig`（中継の URL・Play Integrity）を引数にする |
-| 1 | `station/Station`・`BuiltInStations`・`StationRepository`・`StationLabels`・`AiCost`、`:prompts` の `StationPrompts` | `kit-channel`（新設） | `Station` が持つ `TalkLevel`（散歩の間隔の値）を、頻度の段階だけにする。値はアプリが持つ。`StationRepository` の記録（`WalkRecord`）への依存を外す。素材（`ChannelMaterials`）は段階 2 まで持たない形にする |
+| 1 | `station/Station`・`StationRepository`、`material/ChannelMaterials`、`:prompts` の `BuiltInChannels` の読み込み | `kit-channel`（新設。`Station`・`StationRepository`・`ResourceChannels`・`ChannelMaterials`） | `Station` が持つ頻度を、コアの段階（`TalkLevel`）だけにする。間隔などの値はアプリが持つ。`StationRepository` は設定（`GuideSettings`）ではなく `ChannelChoice` を受け取り、記録（`WalkRecord`）ではなくチャンネルの key の並びから名前を作る。スロットからプロンプトの変数を作るところ（`StationPrompts`）、表示名（`StationLabels`）、費用の目安（`AiCost`）は、アプリの文面と値によるのでアプリに残す |
 | 1 | `diagnostics/WalkDiagnostics` | `kit-channel` か新しいキット（実装のときに決める） | 散歩の名前を外す |
 | 2 | `station/remote`（`ChannelSync`・`ChannelStore`・`ThirdPartyChannels`・`TinkEd25519`）、`report/Report` | `kit-channel` | `ChannelSync` が読む `SanpoProfile` を `AppProfile` の引数にする |
-| 2 | `material`（`Producer`・`Cues`・`Selectors`・`ChannelMaterials`・`Grounding`・`ResourceProducer`） | `kit-channel` | `Producer` が読む `TalkEvent`・`WalkSession` を、汎用の文脈（`MaterialContext`、ADR-ECOSYSTEM-PLATFORM E-16）にする |
+| 2 | `material`（`Producer`・`Cues`・`Selectors`・`MaterialPlan`・`Grounding`・`ResourceProducer`） | `kit-channel` | `Producer` が読む `TalkEvent`・`WalkSession` を、汎用の文脈（`MaterialContext`、ADR-ECOSYSTEM-PLATFORM E-16）にする |
 
 `kit-channel` の新設は、E-4（「素材提供者の実装とチャンネルの取り込み・画面は、2 本目のアプリで共通の形が分かるまでアプリに置く」）の見直しにあたります。段階 1 の移し替えの前に、platform の ADR に足します。
 

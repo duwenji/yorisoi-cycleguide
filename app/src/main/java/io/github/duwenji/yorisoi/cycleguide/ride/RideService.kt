@@ -104,7 +104,10 @@ class RideService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        session?.let { app.diagnostics.finish(it.startedAt) }
+        session?.let { s ->
+            app.diagnostics.finish(s.startedAt)
+            LastRide.of(s, System.currentTimeMillis())?.let(app.lastRide::save)
+        }
         fused.removeLocationUpdates(callback)
         earphones.stop()
         session = null

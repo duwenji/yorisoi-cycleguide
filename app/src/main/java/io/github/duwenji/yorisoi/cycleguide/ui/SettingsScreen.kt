@@ -54,6 +54,8 @@ fun SettingsScreen(
     onChange: ((RideSettings) -> RideSettings) -> Unit,
     onClose: () -> Unit,
     exportRides: (Uri) -> String,
+    hasLastRide: Boolean,
+    clearLastRide: () -> Unit,
 ) {
     val values = settings.values
     Scaffold { padding ->
@@ -103,6 +105,7 @@ fun SettingsScreen(
                 }
             }
             item { AiSettings(settings, onChange) }
+            if (hasLastRide) item { LastRideSection(clearLastRide) }
             item { AboutSection(settings, onChange, exportRides) }
         }
     }
@@ -215,6 +218,16 @@ private fun AboutSection(settings: RideSettings, onChange: ((RideSettings) -> Ri
                 onChange { it.copy(developerMode = false) }
             }) { Text("開発者モードをやめる") }
         }
+    }
+}
+
+/** The ride last finished, kept on this device for the start screen (requirements F-31). */
+@Composable
+private fun LastRideSection(clear: () -> Unit) {
+    Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("前回の走行", style = MaterialTheme.typography.titleMedium)
+        Text("走った道と話した見どころを、この端末にだけ残して、走っていないときの画面に出します。次の走行で置き換わります。", style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(onClick = clear, modifier = Modifier.fillMaxWidth()) { Text("前回の走行を消す") }
     }
 }
 

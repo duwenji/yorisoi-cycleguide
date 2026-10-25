@@ -18,9 +18,10 @@ data class ReviewSample(val id: String, val label: String, val system: String, v
  * the lengths are its own: riding 15 s, at a signal 30 s, resting 60 s, at 5 characters a second.
  * Only what the app sends is in: a spot when the channel talks on spots, a rest and a milestone
  * when it talks on them, and the recap at the finish, which is always said. Ids start with `ride-`
- * so they don't clash with SanpoGuide's.
+ * and labels with [LABEL], so they don't clash with SanpoGuide's for a channel of both.
  */
 object ReviewSamples {
+    const val LABEL = "自転車: "
     const val RIDING_CHARS = 75
     const val SIGNAL_CHARS = 150
     const val REST_CHARS = 300
@@ -34,12 +35,12 @@ object ReviewSamples {
         val events = pkg.manifest.events
 
         fun guide(id: String, label: String, maxChars: Int, spot: Map<String, Any?>) = ReviewSample(
-            id, label, prompts.render(Prompts.Guide.SYSTEM, Prompts.guideSystemVars(slot, maxChars)), prompts.render(Prompts.Guide.USER, spot),
+            id, LABEL + label, prompts.render(Prompts.Guide.SYSTEM, Prompts.guideSystemVars(slot, maxChars)), prompts.render(Prompts.Guide.USER, spot),
         )
 
         fun talk(id: String, label: String, maxChars: Int, event: Prompts.Event, situation: Map<String, Any?>, eventVars: Map<String, Any?> = emptyMap()) =
             ReviewSample(
-                id, label, prompts.render(Prompts.Talk.SYSTEM, Prompts.companionSystemVars(slot, maxChars)),
+                id, LABEL + label, prompts.render(Prompts.Talk.SYSTEM, Prompts.companionSystemVars(slot, maxChars)),
                 Prompts.companionUser(prompts, situation, event, eventVars, slot),
             )
 

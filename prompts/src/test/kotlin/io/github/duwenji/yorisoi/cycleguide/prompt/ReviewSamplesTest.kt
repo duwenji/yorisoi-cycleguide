@@ -27,6 +27,7 @@ class ReviewSamplesTest {
             // The shared rules close every system prompt, whatever the channel.
             assertTrue(s.id, s.system.trimEnd().endsWith(prompts.render("shared/guard").trimEnd()))
         }
+        assertTrue(samples.all { it.label.startsWith(ReviewSamples.LABEL) })
         val byId = samples.associateBy { it.id }
         assertTrue(byId.getValue("ride-guide-temple").system.contains("${ReviewSamples.RIDING_CHARS}字以内"))
         assertTrue(byId.getValue("ride-guide-passed").user.contains("さきほど通り過ぎた"))

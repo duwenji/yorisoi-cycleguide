@@ -2,6 +2,7 @@ package io.github.duwenji.yorisoi.cycleguide.companion
 
 import io.github.duwenji.yorisoi.core.format.TalkEventKind
 import io.github.duwenji.yorisoi.core.format.TalkLevel
+import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.cycleguide.style.StyleValues
 import io.github.duwenji.yorisoi.kit.companion.TalkEngine
@@ -51,6 +52,11 @@ data class RideSituation(
     val weatherWarnedAt: Map<WeatherChangeKind, Long>,
     val pendingGreeting: String?,
     val justSwitched: Boolean,
+    // For the amenities (AmenityAdvisor).
+    val startedAt: Long = now,
+    val facilities: List<NearFacility> = emptyList(),
+    val mentionedFacilities: Set<String> = emptySet(),
+    val amenityMentionedAt: Map<Amenity, Long> = emptyMap(),
 ) : TalkGates<RideGate> {
     override fun isOpen(gate: RideGate): Boolean = when (gate) {
         RideGate.NOT_QUIET -> !quiet
@@ -90,6 +96,7 @@ sealed interface RideDecision {
     /** Too late to finish before the spot: keep it for the next stop. Says nothing. */
     data class Defer(val poi: Poi) : RideDecision
     data class Deferred(val talk: DeferredTalk, val maxChars: Int) : RideDecision
+    data class AmenityNear(val advice: AmenityAdvice) : RideDecision
     data class Rest(val minutes: Int, val maxChars: Int) : RideDecision
     data class Milestone(val maxChars: Int) : RideDecision
     data object Nothing : RideDecision
@@ -148,6 +155,9 @@ object RideDecider {
                 ?.let { RideDecision.Deferred(it, s.maxChars) }
         },
         // From here on the small-talk gap holds.
+        Rule("amenity", setOf(RideGate.CHAT_GAP, RideGate.NOT_QUIET, RideGate.NOT_SWITCHED)) { s ->
+            AmenityAdvisor.pick(s)?.let(RideDecision::AmenityNear)
+        },
         Rule("rest", setOf(RideGate.CHAT_GAP, RideGate.NOT_QUIET, RideGate.NOT_SWITCHED)) { s ->
             RideDecision.Rest((s.stoppedMs / 60_000).toInt(), s.maxChars)
                 .takeIf { s.state == MotionState.REST && !s.restRemarked && TalkEventKind.REST in s.events }

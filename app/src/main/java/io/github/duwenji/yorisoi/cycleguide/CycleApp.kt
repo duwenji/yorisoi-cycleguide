@@ -10,6 +10,7 @@ import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.cycleguide.prompt.BuiltInChannels
 import io.github.duwenji.yorisoi.cycleguide.history.RideHistory
 import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
+import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.kit.channel.StationRepository
 import io.github.duwenji.yorisoi.kit.companion.SessionRecorder
@@ -98,6 +99,7 @@ class CycleApp : Application() {
                 Ahead.searchCenter(LatLon(location.latitude, location.longitude), heading, settings.settings.value.values[StyleItem.AHEAD_M])
             },
             signals = true,
+            facilityKinds = Amenity.SEARCHED,
         )
         speaker = Speaker(this)
         getSystemService(NotificationManager::class.java).apply {

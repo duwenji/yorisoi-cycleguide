@@ -1,6 +1,7 @@
 package io.github.duwenji.yorisoi.cycleguide.companion
 
 import io.github.duwenji.yorisoi.cycleguide.history.SpotTalk
+import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.kit.geo.LatLon
 import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.RouteGeometry
@@ -35,6 +36,12 @@ class RideSession(val startedAt: Long) {
         private set
     val weatherWarnedAt: Map<WeatherChangeKind, Long> get() = _weatherWarnedAt
     private val _weatherWarnedAt = mutableMapOf<WeatherChangeKind, Long>()
+
+    /** Facilities pointed out on this ride, by id, and when each amenity last was. */
+    val mentionedFacilities: Set<String> get() = _mentionedFacilities
+    private val _mentionedFacilities = mutableSetOf<String>()
+    val amenityMentionedAt: Map<Amenity, Long> get() = _amenityMentionedAt
+    private val _amenityMentionedAt = mutableMapOf<Amenity, Long>()
 
     /** The new channel's greeting, said before anything else; null once said. */
     var pendingGreeting: String? = null
@@ -148,6 +155,10 @@ class RideSession(val startedAt: Long) {
                 _deferred.remove(decision.talk)
                 _spots += decision.talk.poi
                 lastSpotTalkAt = now
+            }
+            is RideDecision.AmenityNear -> {
+                _mentionedFacilities += decision.advice.facility.id
+                _amenityMentionedAt[decision.advice.amenity] = now
             }
             is RideDecision.Rest -> restRemarked = true
             is RideDecision.Milestone -> lastMilestoneDistanceM = distanceM

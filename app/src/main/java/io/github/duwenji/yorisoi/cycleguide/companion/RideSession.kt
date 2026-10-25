@@ -39,6 +39,28 @@ class RideSession(val startedAt: Long) {
     /** Spots talked about, or kept for a stop, on this ride, by id. */
     private val talkedSpots = mutableSetOf<String>()
 
+    /** The names of the spots talked about, in order, for the AI's sense of the ride. */
+    val spotNames: List<String> get() = _spotNames
+    private val _spotNames = mutableListOf<String>()
+
+    /** The last lines said, oldest first, so the AI doesn't repeat itself. */
+    val recentLines: List<String> get() = _recentLines
+    private val _recentLines = ArrayDeque<String>()
+
+    fun remember(line: String) {
+        _recentLines.addLast(line)
+        while (_recentLines.size > RECENT_LINES) _recentLines.removeFirst()
+    }
+
+    /**
+     * A line about [poi] came back too long to say now: kept, written, for the next stop, and the
+     * spot counts as talked about.
+     */
+    fun keepLonger(poi: Poi, text: String, credit: String?, now: Long) {
+        talkedSpots += poi.id
+        _deferred += DeferredTalk(poi, text, now, credit)
+    }
+
     val deferred: List<DeferredTalk> get() = _deferred
     private val _deferred = mutableListOf<DeferredTalk>()
 
@@ -82,6 +104,7 @@ class RideSession(val startedAt: Long) {
             is RideDecision.Greeting -> pendingGreeting = null
             is RideDecision.Spot -> {
                 talkedSpots += decision.poi.id
+                _spotNames += decision.poi.name
                 lastSpotTalkAt = now
             }
             is RideDecision.Defer -> {
@@ -91,6 +114,7 @@ class RideSession(val startedAt: Long) {
             }
             is RideDecision.Deferred -> {
                 _deferred.remove(decision.talk)
+                _spotNames += decision.talk.poi.name
                 lastSpotTalkAt = now
             }
             is RideDecision.Rest -> restRemarked = true
@@ -102,6 +126,7 @@ class RideSession(val startedAt: Long) {
 
     companion object {
         const val TRACK_POINTS = 30
+        const val RECENT_LINES = 4
         const val MIN_STEP_M = 3.0
 
         /** After a channel switch, its greeting has the floor this long. */

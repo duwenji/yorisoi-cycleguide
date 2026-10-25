@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.duwenji.yorisoi.cycleguide.R
 import io.github.duwenji.yorisoi.cycleguide.companion.Lines
+import io.github.duwenji.yorisoi.cycleguide.guide.Line
 import io.github.duwenji.yorisoi.cycleguide.settings.RideSettings
 import io.github.duwenji.yorisoi.cycleguide.style.RideStyles
 
@@ -35,7 +36,7 @@ fun MainScreen(
     riding: Boolean,
     settings: RideSettings,
     channelName: String,
-    lastLine: String?,
+    lastLine: Line?,
     hasLocationPermission: Boolean,
     onRequestPermission: () -> Unit,
     onStart: () -> Unit,
@@ -51,7 +52,10 @@ fun MainScreen(
         ) {
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             Text("走り方: ${RideStyles.byId(settings.styleId).label}　チャンネル: $channelName")
-            lastLine?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
+            lastLine?.let {
+                Text(it.text, style = MaterialTheme.typography.bodyLarge)
+                it.credit?.let { credit -> Text(credit, style = MaterialTheme.typography.bodySmall) }
+            }
             when {
                 !hasLocationPermission -> Button(onClick = onRequestPermission, modifier = Modifier.fillMaxWidth()) { Text("位置情報を許可する") }
                 riding -> Button(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("走行を終える") }

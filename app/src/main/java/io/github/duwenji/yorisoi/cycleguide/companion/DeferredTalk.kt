@@ -6,9 +6,10 @@ import io.github.duwenji.yorisoi.kit.geo.RouteGeometry
 
 /**
  * A spot talk kept for the next stop (requirements F-4): too late to finish before the spot, or
- * too long for riding. [text] is the line if it was written already; null to write it then.
+ * too long for riding. [text] is the line if it was written already, with its [credit]; null to
+ * write it then.
  */
-data class DeferredTalk(val poi: Poi, val text: String?, val at: Long) {
+data class DeferredTalk(val poi: Poi, val text: String?, val at: Long, val credit: String? = null) {
     companion object {
         /** Kept talks older than this, or about a spot this far behind, aren't worth it any more. */
         const val MAX_AGE_MS = 10 * 60_000L

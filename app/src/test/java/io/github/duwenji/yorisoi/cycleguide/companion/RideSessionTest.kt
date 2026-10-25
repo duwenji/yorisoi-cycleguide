@@ -45,6 +45,24 @@ class RideSessionTest {
     }
 
     @Test
+    fun `a line too long for riding is kept, written, with its credit`() {
+        val s = RideSession(start)
+        s.keepLonger(shrine, "長い話", "文: 運営の AI", start)
+        assertTrue(s.alreadyTalked(shrine))
+        assertEquals(DeferredTalk(shrine, "長い話", start, "文: 運営の AI"), s.deferred.single())
+        assertEquals(0L, s.lastSpokeAt)
+    }
+
+    @Test
+    fun `the last four lines and the spots talked about are remembered`() {
+        val s = RideSession(start)
+        listOf("一", "二", "三", "四", "五").forEach(s::remember)
+        assertEquals(listOf("二", "三", "四", "五"), s.recentLines)
+        s.carriedOut(RideDecision.Spot(shrine, 150, 90), start)
+        assertEquals(listOf("鶴岡八幡宮"), s.spotNames)
+    }
+
+    @Test
     fun `kept talks far behind are dropped`() {
         val s = RideSession(start)
         s.carriedOut(RideDecision.Defer(shrine), start)

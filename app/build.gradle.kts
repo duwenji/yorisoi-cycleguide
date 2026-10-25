@@ -15,6 +15,13 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+
+        // The operator's AI (platform API-AI-RELAY): the development relay, as in SanpoGuide, until
+        // production's is deployed. It takes this app once the console lists it (requirements X-5).
+        buildConfigField("String", "AI_RELAY_URL", "\"https://teevxbmiaj.execute-api.ap-northeast-1.amazonaws.com/api/\"")
+        // The Google Cloud project linked in Play Console for Play Integrity; 0 sends no token (the
+        // development relay doesn't ask for one).
+        buildConfigField("long", "PLAY_CLOUD_PROJECT_NUMBER", "0L")
     }
 
     buildTypes {
@@ -31,6 +38,16 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    packaging {
+        resources {
+            // The AI services' libraries (kit-llm) bring the same files more than once.
+            excludes += setOf(
+                "META-INF/DEPENDENCIES", "META-INF/LICENSE*", "META-INF/NOTICE*",
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/INDEX.LIST",
+            )
+        }
     }
 }
 
@@ -55,6 +72,7 @@ dependencies {
     implementation(libs.yorisoi.kit.geo)
     implementation(libs.yorisoi.kit.companion)
     implementation(libs.yorisoi.kit.voice)
+    implementation(libs.yorisoi.kit.llm)
 
     testImplementation(libs.junit)
     // The real org.json; Android's is a stub in local unit tests.

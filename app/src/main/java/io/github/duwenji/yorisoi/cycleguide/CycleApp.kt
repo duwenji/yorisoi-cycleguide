@@ -3,7 +3,10 @@ package io.github.duwenji.yorisoi.cycleguide
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.util.Log
 import io.github.duwenji.yorisoi.cycleguide.companion.Ahead
+import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
+import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.cycleguide.prompt.BuiltInChannels
 import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
@@ -13,6 +16,9 @@ import io.github.duwenji.yorisoi.kit.geo.OverpassClient
 import io.github.duwenji.yorisoi.kit.geo.SpotCache
 import io.github.duwenji.yorisoi.kit.geo.SpotRepository
 import io.github.duwenji.yorisoi.kit.geo.weather.WeatherClient
+import io.github.duwenji.yorisoi.kit.llm.AiGateway
+import io.github.duwenji.yorisoi.kit.llm.AiUsage
+import io.github.duwenji.yorisoi.kit.llm.OperatorAi
 import io.github.duwenji.yorisoi.kit.voice.Speaker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +43,10 @@ class CycleApp : Application() {
         private set
     lateinit var speaker: Speaker
         private set
+    lateinit var ai: AiGateway
+        private set
+    lateinit var narrator: Narrator
+        private set
     val weather = WeatherClient()
 
     /** The way the rider goes, set by the ride service; the spot search looks ahead along it. */
@@ -45,7 +55,14 @@ class CycleApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        settings = SettingsRepository(this)
+        val relay = OperatorAi.create(this, BuildConfig.AI_RELAY_URL, BuildConfig.PLAY_CLOUD_PROJECT_NUMBER)
+        settings = SettingsRepository(this, operatorAvailable = relay != null)
+        ai = AiGateway({ settings.settings.value.connection }, AiUsage.of(this), relay)
+        ai.onCall = { call -> Log.i("AiGateway", "${call.kind} ${call.model} ${call.ms}ms error=${call.error} violation=${call.violation} reply=${call.reply}") }
+        narrator = Narrator(
+            Prompts.fromResources(), ai::generate, aiName = { settings.settings.value.connection.name },
+            onError = { Log.w("Narrator", "No line from the AI", it) },
+        )
         val choice = settings.settings.map { it.channelChoice }.stateIn(appScope, SharingStarted.Eagerly, settings.settings.value.channelChoice)
         stations = StationRepository(BuiltInChannels.load(), BuiltInChannels.STANDARD, choice, appScope)
         spots = SpotRepository(

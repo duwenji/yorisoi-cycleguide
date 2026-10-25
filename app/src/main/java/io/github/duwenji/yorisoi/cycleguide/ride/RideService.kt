@@ -31,6 +31,11 @@ import io.github.duwenji.yorisoi.cycleguide.companion.RideDecider
 import io.github.duwenji.yorisoi.cycleguide.companion.RideDecision
 import io.github.duwenji.yorisoi.cycleguide.companion.RideSession
 import io.github.duwenji.yorisoi.cycleguide.companion.RideSituation
+import io.github.duwenji.yorisoi.cycleguide.companion.SpeechBudget
+import io.github.duwenji.yorisoi.cycleguide.guide.Line
+import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
+import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
+import io.github.duwenji.yorisoi.kit.channel.Station
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.cycleguide.ui.MainActivity
 import io.github.duwenji.yorisoi.kit.geo.LatLon
@@ -157,7 +162,7 @@ class RideService : LifecycleService() {
 
             if (EarphoneRule.shouldNotice(earphones.connected, state, earphoneNoticed)) {
                 earphoneNoticed = true
-                say(Lines.EARPHONE_NOTICE, state)
+                say(Line(Lines.EARPHONE_NOTICE), state)
                 return
             }
 
@@ -180,24 +185,66 @@ class RideService : LifecycleService() {
             )
             val decision = RideDecider.decide(situation)
             if (decision != RideDecision.Nothing) Log.i(TAG, "$state ${motion.speedMps} quiet=${situation.quiet} ahead=${ahead.size}: $decision")
-            Lines.of(decision)?.let { say(it, state) }
-            s.carriedOut(decision, now)
+            carryOut(s, decision, now)
         } finally {
             talking.unlock()
         }
     }
 
+    /**
+     * Says what [decision] calls for: the AI's line where there is one (spots, rests, milestones)
+     * if it fits the length allowed when it comes back, else the fixed line. A spot line too long
+     * for riding is kept for the next stop. Safety and greetings are always the fixed lines.
+     */
+    private suspend fun carryOut(s: RideSession, decision: RideDecision, now: Long) {
+        val station = app.stations.current.value
+        val fixed = Lines.of(decision)?.let { Line(it) }
+        val line: Line? = when (decision) {
+            is RideDecision.Spot -> {
+                val written = app.narrator.spot(decision.poi, decision.distanceM, riding = true, station, decision.maxChars)
+                // The rider may have stopped while it was written: the length allowed now counts.
+                if (written != null && !SpeechBudget.fits(written.text, maxCharsNow())) {
+                    s.keepLonger(decision.poi, written.text, written.credit, now)
+                    return
+                }
+                written ?: fixed
+            }
+            is RideDecision.Deferred -> {
+                val kept = decision.talk
+                val written = if (kept.text != null) Line(kept.text, kept.credit) else app.narrator.spot(kept.poi, null, riding = false, station, decision.maxChars)
+                written?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) } ?: fixed
+            }
+            is RideDecision.Rest -> talk(s, Prompts.Event.REST, mapOf("minutes" to decision.minutes), station, decision.maxChars) ?: fixed
+            is RideDecision.Milestone -> talk(s, Prompts.Event.MILESTONE, emptyMap(), station, decision.maxChars) ?: fixed
+            else -> fixed
+        }
+        line?.let { say(it, motion.state(System.currentTimeMillis())) }
+        s.carriedOut(decision, now)
+    }
+
+    private suspend fun talk(s: RideSession, event: Prompts.Event, vars: Map<String, Any?>, station: Station, maxChars: Int): Line? {
+        val now = System.currentTimeMillis()
+        val situation = Narrator.situationVars(
+            now, app.settings.settings.value.values.style.label, weather,
+            rideMinutes = ((now - s.startedAt) / 60_000).toInt(), distanceM = s.distanceM, spots = s.spotNames, recent = s.recentLines,
+        )
+        return app.narrator.talk(event, vars, situation, station, maxChars)?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) }
+    }
+
+    private fun maxCharsNow(): Int = SpeechBudget.maxChars(app.settings.settings.value.values, motion.state(System.currentTimeMillis()))
+
     private fun onStateChanged(s: RideSession, state: MotionState) {
         _state.value = state
         if (state == MotionState.MOVING) s.onMoving()
-        notify(rideNotification(state, _lastLine.value))
+        notify(rideNotification(state, _lastLine.value?.text))
     }
 
-    private fun say(text: String, state: MotionState) {
-        Log.i(TAG, "say: $text")
-        app.speaker.speak(text)
-        _lastLine.value = text
-        notify(rideNotification(state, text))
+    private fun say(line: Line, state: MotionState) {
+        Log.i(TAG, "say: ${line.text} (${line.credit})")
+        app.speaker.speak(line.text)
+        session?.remember(line.text)
+        _lastLine.value = line
+        notify(rideNotification(state, line.text))
     }
 
     private suspend fun refreshWeather(location: Location) {
@@ -253,8 +300,10 @@ class RideService : LifecycleService() {
         /** The rider's state while a ride goes on; null when there is no ride. */
         val state: StateFlow<MotionState?> = _state.asStateFlow()
 
-        private val _lastLine = MutableStateFlow<String?>(null)
-        val lastLine: StateFlow<String?> = _lastLine.asStateFlow()
+        private val _lastLine = MutableStateFlow<Line?>(null)
+
+        /** The last line said, with its credit when the AI wrote it (platform ADR-AI-ROLES H-15). */
+        val lastLine: StateFlow<Line?> = _lastLine.asStateFlow()
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, RideService::class.java))

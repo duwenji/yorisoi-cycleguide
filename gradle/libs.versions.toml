@@ -12,7 +12,7 @@ coroutines = "1.10.2"
 json = "20240303"
 junit = "4.13.2"
 # The yorisoi platform (github.com/duwenji/yorisoi-platform): one version for all modules.
-yorisoi = "2.9.0"
+yorisoi = "2.10.0"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -36,6 +36,7 @@ yorisoi-kit-channel = { module = "io.github.duwenji.yorisoi:kit-channel", versio
 yorisoi-kit-geo = { module = "io.github.duwenji.yorisoi:kit-geo", version.ref = "yorisoi" }
 yorisoi-kit-companion = { module = "io.github.duwenji.yorisoi:kit-companion", version.ref = "yorisoi" }
 yorisoi-kit-voice = { module = "io.github.duwenji.yorisoi:kit-voice", version.ref = "yorisoi" }
+yorisoi-kit-llm = { module = "io.github.duwenji.yorisoi:kit-llm", version.ref = "yorisoi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

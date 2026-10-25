@@ -23,6 +23,9 @@ class PromptsTest {
             val system = prompts.render(Prompts.Guide.SYSTEM, Prompts.guideSystemVars(station::slot, 90))
             assertTrue(station.id, system.contains("90字以内"))
             assertTrue(station.id, system.contains("交通の決まりに反すること"))
+            assertTrue(station.id, system.contains("歩く人向けの言葉は使わない"))
+            assertTrue(station.id, system.contains("見たかのように話さない"))
+            assertTrue(station.id, system.contains("宗派・由来・創建の年代"))
             assertFalse(station.id, system.contains("{{"))
         }
         val riding = prompts.render(
@@ -35,6 +38,7 @@ class PromptsTest {
             mapOf("name" to "教恩寺", "category" to "寺院", "riding" to false, "distance_m" to null, "passed" to true, "tags" to emptyList<String>()),
         )
         assertTrue(passed.contains("さきほど通り過ぎた"))
+        assertTrue(passed.contains("謝ったり残念がったりせず"))
     }
 
     @Test

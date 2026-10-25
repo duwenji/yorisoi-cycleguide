@@ -126,6 +126,20 @@ flowchart LR
 - 走行の外では位置を使わないので、現在地の地図は出しません。代わりに前回の走行（`LastRideMap`）を出します。始めた日時・距離・時間と、走った道の全体（`SpotMap` の `fitWalked`）・話した見どころ（`RideSession.spots`）です。`RideService.onDestroy` で `LastRide` を作り、`LastRideStore` が `files/last-ride.json` に 1 件だけ残します。道は 1000 点まで間引き、見どころは地図が描くのに要る値（ID・名前・緯度経度・種類）だけです。動かずに終えた走行（道が 2 点未満）は残さず、前の走行がそのまま残ります。設定の「前回の走行を消す」で消します
 - `EarphoneWatch` は `AudioDeviceCallback` でイヤホン（Bluetooth・有線・USB）を見つけます。つながっていれば、止まっているときに走行ごとに一度、注意を読み上げます（`EarphoneRule`）。初めて走り始める前の注意は、開始の画面のダイアログで出します
 
+### 段階 2 の部品
+
+| 部品 | 設計 |
+|---|---|
+| 走行の履歴（F-28） | `history` の `RideHistory` が、走り終えた走行を `files/ride-history.json` に新しい順で残します（端末の中だけ、P-1）。1 件は `LastRide` の中身（始めた日時・終えた日時・距離・走った道・話した見どころ）に、話した見どころごとの話（`SpotTalk`：見どころの ID・話した時刻・話の文）と使ったチャンネルの並びを足したものです。残すのは 500 件まで（SanpoGuide の `HistoryStore` と同じ）。`LastRideStore` は `RideHistory` に置き換え、開始の画面の前回の走行（F-31）は履歴のいちばん新しい走行を出します。設定の「前回の走行を消す」は「履歴を消す」にします |
+| 振り返り（F-28） | 走行を終えると、止まっているので長さの上限をかけずに、AI に振り返りを作らせて読み上げます（プロンプト・パックに `finish` を足す。材料は距離・時間・話した見どころの名前）。文は履歴に残し、`HistoryScreen` の 1 件の画面で地図と一緒に出します。AI が答えないときは、距離と時間だけの定型の文にします |
+| 履歴の画面（F-20・F-28） | `HistoryScreen` は一覧（日時・距離・時間）と 1 件の画面（`SpotMap` の `fitWalked` で走った道と話した見どころ、振り返り、見どころごとの話）です。走行中は開けません（S-2） |
+| 施設の案内（F-7） | kit-geo の `FacilityKind` に、駐輪場（`amenity=bicycle_parking`）・コンビニ（`shop=convenience`）・自転車店（`shop=bicycle`）・空気入れ（`amenity=bicycle_repair_station` で `service:bicycle:pump=yes` のもの、`amenity=compressed_air`）を足し、取る種類を `SpotRepository` に渡せるようにします（渡さなければ今と同じ。SanpoGuide は変えない）。`Amenity` は `FacilityKind` の組み合わせに対応させ、走り方の施設の種類だけを取ります（AC-14） |
+| 施設の判定（F-7） | `AmenityAdvisor`（Android に依存しない）が、前方（`Ahead` の扇形、`AHEAD_M` まで）の施設から、いま話すものを 1 つ選びます。ルール ⑧ で、`CHAT_GAP`・`NOT_QUIET`・`NOT_SWITCHED` をかけます。種類ごとの条件は、トイレ・ひと休み・補給が走り始めてからの時間（`StyleItem` に足す）、水分が気温（天気の予報）、駐輪場が休憩とみなす停止の近く（ポタリングで寄り道するとき）、自転車店・空気入れが走行ごとに一度です。同じ施設は走行ごとに一度だけです。SanpoGuide の `FacilityAdvisor` は歩く人の近さで選ぶので、条件が違います。共通にするのは方角の言い方（`relativeDirection`）だけで、kit-geo に移します |
+| チャンネルの取り込み（F-26） | platform に移した `kit-channel` の `ChannelSync`・`ChannelStore`・`ThirdPartyChannels` を使います。アプリの見え方は `CycleProfile`（`AppIds.CYCLEGUIDE`・`Activity.CYCLE`・使える機能）で渡します。`activities` に `cycle` を含まないチャンネルは、互換性の確かめで外れます（AC-9）。素材集は `kit-channel` の素材提供者（`Producer` ほか）を、走行の文脈（`MaterialContext`）で使います |
+| チャンネルの画面（F-20・F-26） | `ChannelsScreen`（リストの追加・チャンネルの入れ替え・通報）は SanpoGuide の画面を元に、このアプリで書きます（画面はアプリに置く、E-4）。止まっているときだけ開けます |
+| プロンプト・パックの公開（F-30） | `:prompts` を GitHub Packages に公開します（`io.github.duwenji.yorisoi.cycleguide:prompts`、版は `cycleguidePromptsVersion`）。審査の見本（`ReviewSamples`）を足し、`cycle` のチャンネルを、このアプリが送るのと同じプロンプトで組み立てます |
+| 審査の見本（X-6） | yorisoi-console の validator が、SanpoGuide のパックと CycleGuide のパックの両方を使い、チャンネルの `activities` で選びます（`walk` は SanpoGuide、`cycle` は CycleGuide。両方を含むときは両方の見本）。どちらも含まないときだけ `noRepresentativeApp` を返します（AC-23） |
+
 ### 段階 3 の部品
 
 | 部品 | 設計 |
@@ -190,6 +204,15 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 5. プロンプト・パックと組み込みのチャンネル（U-4 を決める）
 6. 開発者モードの記録、エミュレータでの受入条件の確認
 7. 管理システムの変更（X-5）
+
+## 段階 2 の実装の順番
+
+1. platform: `kit-channel` に `station/remote`・`report`・`material` を移す（`MaterialContext`）。kit-geo の施設の種類と取る種類の指定、方角の言い方。SanpoGuide を新しい版に上げて確かめる
+2. CycleGuide: `RideHistory`・`HistoryScreen`・振り返り（F-28）。前回の走行を履歴のいちばん新しい走行にする
+3. 施設の案内（`AmenityAdvisor`・ルール ⑧、F-7）。場面のテストを書く
+4. チャンネルの取り込みと画面（`CycleProfile`・`ChannelsScreen`、F-26）
+5. プロンプト・パックの公開と審査の見本（F-30）、管理システムの変更（X-6）
+6. エミュレータでの受入条件の確認（AC-9・AC-14・AC-21・AC-23）、内部テスト
 
 ## 未決事項
 

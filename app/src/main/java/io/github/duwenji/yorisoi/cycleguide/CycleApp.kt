@@ -8,6 +8,7 @@ import io.github.duwenji.yorisoi.cycleguide.companion.Ahead
 import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.cycleguide.prompt.BuiltInChannels
+import io.github.duwenji.yorisoi.cycleguide.ride.LastRideStore
 import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.kit.channel.StationRepository
@@ -53,6 +54,10 @@ class CycleApp : Application() {
     /** The developer's record of each ride taken in developer mode (requirements F-29). */
     lateinit var diagnostics: SessionRecorder
         private set
+
+    /** The ride last finished, for the start screen (requirements F-31). */
+    lateinit var lastRide: LastRideStore
+        private set
     val weather = WeatherClient()
 
     /** The way the rider goes, set by the ride service; the spot search looks ahead along it. */
@@ -69,6 +74,7 @@ class CycleApp : Application() {
         diagnostics = SessionRecorder(File(filesDir, "diagnostics"), startType = "ride_start", endType = "ride_end") {
             Log.w("SessionRecorder", "Could not write a diagnostics line", it)
         }
+        lastRide = LastRideStore(File(filesDir, "last-ride.json")) { Log.w("LastRideStore", "Could not keep the last ride", it) }
         ai.onCall = { call ->
             Log.i("AiGateway", "${call.kind} ${call.model} ${call.ms}ms error=${call.error} violation=${call.violation}")
             diagnostics.event(

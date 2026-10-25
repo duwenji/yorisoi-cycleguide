@@ -41,13 +41,17 @@ class MainActivity : ComponentActivity() {
                 val settings by app.settings.settings.collectAsStateWithLifecycle()
                 val station by app.stations.current.collectAsStateWithLifecycle()
                 val lastLine by RideService.lastLine.collectAsStateWithLifecycle()
+                val lastRide by app.lastRide.ride.collectAsStateWithLifecycle()
                 var showSettings by rememberSaveable { mutableStateOf(false) }
                 when {
                     // Nothing to read while moving (requirements S-1).
                     state == MotionState.MOVING -> RidingScreen()
                     showSettings -> {
                         BackHandler { showSettings = false }
-                        SettingsScreen(settings, onChange = app.settings::update, onClose = { showSettings = false }, exportRides = ::exportRides)
+                        SettingsScreen(
+                            settings, onChange = app.settings::update, onClose = { showSettings = false }, exportRides = ::exportRides,
+                            hasLastRide = lastRide != null, clearLastRide = app.lastRide::clear,
+                        )
                     }
                     else -> MainScreen(
                         riding = state != null,
@@ -62,7 +66,10 @@ class MainActivity : ComponentActivity() {
                         },
                         onStop = { RideService.stop(this) },
                         onSettings = { showSettings = true },
-                        map = if (state != null) { modifier -> RideMap(app, modifier) } else null,
+                        map = when {
+                            state != null -> { modifier -> RideMap(app, modifier) }
+                            else -> lastRide?.let { ride -> { modifier -> LastRideMap(ride, modifier) } }
+                        },
                     )
                 }
             }

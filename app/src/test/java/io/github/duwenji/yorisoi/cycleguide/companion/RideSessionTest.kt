@@ -69,6 +69,7 @@ class RideSessionTest {
         assertEquals(listOf("二", "三", "四", "五"), s.recentLines)
         s.carriedOut(RideDecision.Spot(shrine, 150, 90), start)
         assertEquals(listOf("鶴岡八幡宮"), s.spotNames)
+        assertEquals(listOf(shrine), s.spots)
     }
 
     @Test

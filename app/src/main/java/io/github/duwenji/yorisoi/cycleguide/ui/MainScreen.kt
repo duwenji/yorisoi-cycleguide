@@ -42,7 +42,7 @@ fun MainScreen(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onSettings: () -> Unit,
-    /** The map while stopped on a ride; null when there is none to show. */
+    /** The map while stopped on a ride, or of the last ride outside one; null when there is none to show. */
     map: (@Composable (Modifier) -> Unit)? = null,
 ) {
     // The rules on phones and earphones, before the first ride (requirements S-3, S-5, AC-8).

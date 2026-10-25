@@ -43,9 +43,12 @@ class RideSession(val startedAt: Long) {
     /** Spots talked about, or kept for a stop, on this ride, by id. */
     private val talkedSpots = mutableSetOf<String>()
 
+    /** The spots talked about, in order, for the map of the ride once it's over. */
+    val spots: List<Poi> get() = _spots
+    private val _spots = mutableListOf<Poi>()
+
     /** The names of the spots talked about, in order, for the AI's sense of the ride. */
-    val spotNames: List<String> get() = _spotNames
-    private val _spotNames = mutableListOf<String>()
+    val spotNames: List<String> get() = _spots.map { it.name }
 
     /** The last lines said, oldest first, so the AI doesn't repeat itself. */
     val recentLines: List<String> get() = _recentLines
@@ -114,7 +117,7 @@ class RideSession(val startedAt: Long) {
             is RideDecision.Greeting -> pendingGreeting = null
             is RideDecision.Spot -> {
                 talkedSpots += decision.poi.id
-                _spotNames += decision.poi.name
+                _spots += decision.poi
                 lastSpotTalkAt = now
             }
             is RideDecision.Defer -> {
@@ -124,7 +127,7 @@ class RideSession(val startedAt: Long) {
             }
             is RideDecision.Deferred -> {
                 _deferred.remove(decision.talk)
-                _spotNames += decision.talk.poi.name
+                _spots += decision.talk.poi
                 lastSpotTalkAt = now
             }
             is RideDecision.Rest -> restRemarked = true

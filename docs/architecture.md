@@ -20,7 +20,7 @@ SanpoGuide と同じ作りを基本にします。DI ライブラリは使わず
 flowchart LR
   subgraph UI["画面（ui）"]
     MainActivity
-    MainScreen["MainScreen<br/>最後の話・地図（止まっているときだけ）"]
+    MainScreen["MainScreen<br/>最後の話・地図（走行中は止まっているときだけ。走行の外は前回の走行）"]
     RidingScreen["RidingScreen<br/>「走行中」だけ"]
     SettingsScreen["SettingsScreen<br/>走り方・値の調整・AI"]
     HistoryScreen["HistoryScreen<br/>履歴・振り返り（段階 2）"]
@@ -122,7 +122,8 @@ flowchart LR
 
 - `MainActivity` は `Motion` を見て、`MOVING` のときは `RidingScreen`（「走行中」とだけ出す暗い画面）にします。`FLAG_KEEP_SCREEN_ON` は付けません
 - 常駐の通知は、`MOVING` の間は操作のボタンを外した形に差し替えます
-- 地図（`RideMap`。kit-geo の `SpotMap`、地理院 淡色）は、走行中に止まっているときだけメインの画面に出します。現在地と向き・見つかった見どころ・今回走った道（`RideSession.route`）。走行の外では位置を使わないので出しません
+- 地図（`RideMap`。kit-geo の `SpotMap`、地理院 淡色）は、走行中に止まっているときだけメインの画面に出します。現在地と向き・見つかった見どころ・今回走った道（`RideSession.route`）
+- 走行の外では位置を使わないので、現在地の地図は出しません。代わりに前回の走行（`LastRideMap`）を出します。始めた日時・距離・時間と、走った道の全体（`SpotMap` の `fitWalked`）・話した見どころ（`RideSession.spots`）です。`RideService.onDestroy` で `LastRide` を作り、`LastRideStore` が `files/last-ride.json` に 1 件だけ残します。道は 1000 点まで間引き、見どころは地図が描くのに要る値（ID・名前・緯度経度・種類）だけです。動かずに終えた走行（道が 2 点未満）は残さず、前の走行がそのまま残ります。設定の「前回の走行を消す」で消します
 - `EarphoneWatch` は `AudioDeviceCallback` でイヤホン（Bluetooth・有線・USB）を見つけます。つながっていれば、止まっているときに走行ごとに一度、注意を読み上げます（`EarphoneRule`）。初めて走り始める前の注意は、開始の画面のダイアログで出します
 
 ### 段階 3 の部品
@@ -147,7 +148,7 @@ flowchart LR
 | パッケージ | 役割 | 主なファイル |
 |---|---|---|
 | `ui` | 画面と ViewModel | MainScreen, RidingScreen, SettingsScreen, HistoryScreen |
-| `ride` | 常駐のサービス、イヤホンの注意、メディアボタン | RideService, EarphoneWatch, EarphoneRule, MediaButtons |
+| `ride` | 常駐のサービス、イヤホンの注意、メディアボタン、前回の走行 | RideService, EarphoneWatch, EarphoneRule, MediaButtons, LastRide |
 | `companion` | 判定とその材料、定型の話（AI で文を作るまでの話と、安全の案内の文） | RideDecider, RideSession, Motion, Ahead, QuietZones, SpeechBudget, DeferredTalk, Lines |
 | `style` | 走り方と調整 | RideStyle, RideStyles, StyleValues |
 | `settings` | 設定の保存（走り方・走り方ごとの値の変更・チャンネル・イヤホンの注意を出したか） | SettingsRepository |

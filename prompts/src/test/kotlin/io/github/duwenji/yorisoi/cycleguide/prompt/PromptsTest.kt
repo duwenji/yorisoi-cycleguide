@@ -25,7 +25,7 @@ class PromptsTest {
             assertTrue(station.id, system.contains("交通の決まりに反すること"))
             assertTrue(station.id, system.contains("歩く人向けの言葉は使わない"))
             assertTrue(station.id, system.contains("見たかのように話さない"))
-            assertTrue(station.id, system.contains("宗派・由来・創建の年代"))
+            assertTrue(station.id, system.contains("タグにないことは、有名な場所でも言わない"))
             assertFalse(station.id, system.contains("{{"))
         }
         val riding = prompts.render(
@@ -39,6 +39,8 @@ class PromptsTest {
         )
         assertTrue(passed.contains("さきほど通り過ぎた"))
         assertTrue(passed.contains("謝ったり残念がったりせず"))
+        assertTrue(passed.contains("# 書かないこと"))
+        assertTrue(passed.contains("- なし"))
     }
 
     @Test

@@ -4,7 +4,7 @@
 |---|---|
 | 対象 | CycleGuide（yorisoi-cycleguide）の構造と、platform・管理システムの変更 |
 | 読む人 | アプリ開発者 |
-| 状態 | 設計（承認済み・未実装） |
+| 状態 | 設計（承認済み。段階 1 は実装済み） |
 | 関連 | [要件定義](requirements.md)、[platform ADR-ECOSYSTEM-PLATFORM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/decisions/ADR-ECOSYSTEM-PLATFORM.md)、[SanpoGuide の構造図](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/architecture.md) |
 
 SanpoGuide と同じ作りを基本にします。DI ライブラリは使わず、`CycleApp.onCreate()` が共有部品を作り、画面と常駐のサービス（`RideService`）がそれを使います。散歩と違うのは、主に次の 4 つです。
@@ -207,8 +207,8 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 
 ## 段階 2 の実装の順番
 
-1. platform: `kit-channel` に `station/remote`・`report`・`material` を移す（`MaterialContext`）。kit-geo の施設の種類と取る種類の指定、方角の言い方。SanpoGuide を新しい版に上げて確かめる
-2. CycleGuide: `RideHistory`・`HistoryScreen`・振り返り（F-28）。前回の走行を履歴のいちばん新しい走行にする
+1. CycleGuide: `RideHistory`・`HistoryScreen`・振り返り（F-28）。前回の走行を履歴のいちばん新しい走行にする（platform の変更は要らない）
+2. platform: `kit-channel` に `station/remote`・`report`・`material` を移す（`MaterialContext`）。kit-geo の施設の種類と取る種類の指定、方角の言い方。SanpoGuide を新しい版に上げて確かめる
 3. 施設の案内（`AmenityAdvisor`・ルール ⑧、F-7）。場面のテストを書く
 4. チャンネルの取り込みと画面（`CycleProfile`・`ChannelsScreen`、F-26）
 5. プロンプト・パックの公開と審査の見本（F-30）、管理システムの変更（X-6）

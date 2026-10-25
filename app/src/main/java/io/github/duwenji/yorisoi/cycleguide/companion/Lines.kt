@@ -21,11 +21,11 @@ object Lines {
         is RideDecision.Sunset -> "日の入りまであと${decision.minutesLeft}分です。ライトをつけましょう。"
         is RideDecision.Greeting -> decision.line
         is RideDecision.Spot -> "この先、${decision.poi.name}があります。"
-        is RideDecision.Deferred -> "さきほど通った${decision.talk.poi.name}は、${decision.talk.poi.category}です。"
+        is RideDecision.Deferred -> decision.talk.poi?.let { "さきほど通った${it.name}は、${it.category}です。" }
         is RideDecision.AmenityNear -> amenity(decision.advice)
         is RideDecision.Rest -> "ひと休みですね。水分をとっておきましょう。"
         is RideDecision.Milestone -> "ここまで順調です。"
-        is RideDecision.Defer, RideDecision.Nothing -> null
+        is RideDecision.Defer, is RideDecision.Point, RideDecision.Nothing -> null
     }
 
     /**

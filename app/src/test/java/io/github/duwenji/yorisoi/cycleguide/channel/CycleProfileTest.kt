@@ -23,4 +23,11 @@ class CycleProfileTest {
         assertTrue(Compatibility.reasons(standard.copy(requires = setOf(Feature.PRESENT_SHEET)), profile).isNotEmpty())
         assertTrue(Compatibility.reasons(standard.copy(activities = setOf(Activity.WALK, Activity.CYCLE)), profile).isEmpty())
     }
+
+    @Test
+    fun `spot and point cues are read out, the rest is not offered (F-32)`() {
+        assertTrue(Compatibility.reasons(standard.copy(requires = setOf(Feature.TRIGGER_SPOT, Feature.TRIGGER_POINT, Feature.PRESENT_SPEAK)), profile).isEmpty())
+        assertTrue(Compatibility.reasons(standard.copy(requires = setOf(Feature.TRIGGER_EVENT)), profile).isNotEmpty())
+        assertTrue(Compatibility.reasons(standard.copy(requires = setOf(Feature.PRESENT_CARD)), profile).isNotEmpty())
+    }
 }

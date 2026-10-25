@@ -43,13 +43,14 @@ class Narrator(
     private val aiName: () -> String,
     private val onError: (Exception) -> Unit = {},
 ) {
-    suspend fun spot(poi: Poi, distanceM: Int?, riding: Boolean, station: Station, maxChars: Int): Line? {
-        val grounds = Grounding.collect(PoiSpot(poi, distanceM), station)
+    /** [grounds]: the texts to take as fact, when a cue's request carries them; otherwise gathered here. */
+    suspend fun spot(poi: Poi, distanceM: Int?, riding: Boolean, station: Station, maxChars: Int, grounds: List<Ground>? = null): Line? {
+        val facts = grounds ?: Grounding.collect(PoiSpot(poi, distanceM), station)
         return ask(
             Purpose.GUIDE,
             prompts.render(Prompts.Guide.SYSTEM, Prompts.guideSystemVars(station::slot, maxChars)),
-            prompts.render(Prompts.Guide.USER, spotVars(poi, distanceM, riding, grounds)),
-            basedOn = grounds.map { it.producerName }.distinct(),
+            prompts.render(Prompts.Guide.USER, spotVars(poi, distanceM, riding, facts)),
+            basedOn = facts.map { it.producerName }.distinct(),
         )
     }
 

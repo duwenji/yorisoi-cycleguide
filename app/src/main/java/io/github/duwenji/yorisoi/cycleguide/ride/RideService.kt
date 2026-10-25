@@ -28,20 +28,26 @@ import io.github.duwenji.yorisoi.cycleguide.companion.Lines
 import io.github.duwenji.yorisoi.cycleguide.companion.Motion
 import io.github.duwenji.yorisoi.cycleguide.companion.MotionState
 import io.github.duwenji.yorisoi.cycleguide.companion.NearFacility
+import io.github.duwenji.yorisoi.cycleguide.companion.PointCue
 import io.github.duwenji.yorisoi.cycleguide.companion.QuietZones
 import io.github.duwenji.yorisoi.cycleguide.companion.RideDecider
 import io.github.duwenji.yorisoi.cycleguide.companion.RideDecision
 import io.github.duwenji.yorisoi.cycleguide.companion.RideSession
 import io.github.duwenji.yorisoi.cycleguide.companion.RideSituation
 import io.github.duwenji.yorisoi.cycleguide.companion.SpeechBudget
+import io.github.duwenji.yorisoi.cycleguide.cue.RideContext
 import io.github.duwenji.yorisoi.cycleguide.guide.Line
+import io.github.duwenji.yorisoi.cycleguide.guide.PoiSpot
 import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
 import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.kit.channel.Station
+import io.github.duwenji.yorisoi.kit.channel.material.CueFire
+import io.github.duwenji.yorisoi.kit.channel.material.Subject
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.cycleguide.ui.MainActivity
 import io.github.duwenji.yorisoi.kit.geo.LatLon
+import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.RouteGeometry
 import io.github.duwenji.yorisoi.kit.geo.relativeDirection
 import io.github.duwenji.yorisoi.kit.geo.weather.Weather
@@ -279,7 +285,7 @@ class RideService : LifecycleService() {
             val way = heading
             val ahead = if (here == null || way == null) emptyList() else app.spots.spots.value
                 .filter { Ahead.isAhead(here, way, LatLon(it.lat, it.lon), values[StyleItem.AHEAD_M].toDouble()) }
-                .map { AheadSpot(it, RouteGeometry.distanceM(here, LatLon(it.lat, it.lon)), s.alreadyTalked(it)) }
+                .map { AheadSpot(it, RouteGeometry.distanceM(here, LatLon(it.lat, it.lon)), s.alreadyTalked(it), app.cues.names(station, it, s.shownCues, now)) }
             val facilities = if (here == null) emptyList() else app.spots.facilities.value.map { f ->
                 val at = LatLon(f.lat, f.lon)
                 NearFacility(
@@ -298,6 +304,7 @@ class RideService : LifecycleService() {
                 lastMilestoneDistanceM = s.lastMilestoneDistanceM, restRemarked = s.restRemarked,
                 sunsetWarned = s.sunsetWarned, weatherWarnedAt = s.weatherWarnedAt,
                 pendingGreeting = s.pendingGreeting, justSwitched = s.justSwitched(now),
+                pointCue = here?.let { pointCue(station, it, s, now) },
                 startedAt = s.startedAt, facilities = facilities,
                 mentionedFacilities = s.mentionedFacilities, amenityMentionedAt = s.amenityMentionedAt,
             )
@@ -326,7 +333,10 @@ class RideService : LifecycleService() {
         val fixed = Lines.of(decision)?.let { Line(it) }
         val line: Line? = when (decision) {
             is RideDecision.Spot -> {
-                val written = app.narrator.spot(decision.poi, decision.distanceM, riding = true, station, decision.maxChars)
+                // A channel's cue on this spot says its own line (F-32); otherwise the AI's narration.
+                val cue = app.cues.spot(station, decision.poi, decision.distanceM, s.shownCues, now)
+                val cued = cue?.let { cueLine(s, it, station, RideContext(riding = true, decision.maxChars), now) }
+                val written = cued ?: app.narrator.spot(decision.poi, decision.distanceM, riding = true, station, decision.maxChars)
                 // The rider may have stopped while it was written: the length allowed now counts.
                 if (written != null && !SpeechBudget.fits(written.text, maxCharsNow())) {
                     s.keepLonger(decision.poi, written.text, written.credit, now)
@@ -336,8 +346,27 @@ class RideService : LifecycleService() {
             }
             is RideDecision.Deferred -> {
                 val kept = decision.talk
-                val written = if (kept.text != null) Line(kept.text, kept.credit) else app.narrator.spot(kept.poi, null, riding = false, station, decision.maxChars)
-                (written?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) } ?: fixed)?.also { s.said(kept.poi, it.text, now) }
+                val written = when {
+                    kept.text != null -> Line(kept.text, kept.credit)
+                    kept.poi != null -> {
+                        // A spot a cue names, passed too late: its own line now (F-32).
+                        val cue = app.cues.spot(station, kept.poi, null, s.shownCues, now)
+                        cue?.let { cueLine(s, it, station, RideContext(riding = false, decision.maxChars), now) }
+                            ?: app.narrator.spot(kept.poi, null, riding = false, station, decision.maxChars)
+                    }
+                    else -> null
+                }
+                (written?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) } ?: fixed)?.also { line -> kept.poi?.let { s.said(it, line.text, now) } }
+            }
+            is RideDecision.Point -> {
+                val cue = decision.cue
+                val state = motion.state(now)
+                val line = cueLine(s, cue.fire, station, RideContext(state == MotionState.MOVING, decision.maxChars, pointSpot(s, cue)), now) ?: return
+                if (!SpeechBudget.fits(line.text, maxCharsNow())) {
+                    s.keepPoint(cue.name, cue.lat, cue.lon, line.text, line.credit, now)
+                    return
+                }
+                line
             }
             is RideDecision.Rest -> talk(s, Prompts.Event.REST, mapOf("minutes" to decision.minutes), station, decision.maxChars) ?: fixed
             is RideDecision.Milestone -> talk(s, Prompts.Event.MILESTONE, emptyMap(), station, decision.maxChars) ?: fixed
@@ -356,13 +385,45 @@ class RideService : LifecycleService() {
         return app.narrator.talk(event, vars, situation, station, maxChars)?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) }
     }
 
+    /** The point cue the rider at [here] is inside, if any may still fire (F-32). */
+    private fun pointCue(station: Station, here: LatLon, s: RideSession, now: Long): PointCue? {
+        val fire = app.cues.point(station, here.lat, here.lon, s.shownCues, now) ?: return null
+        val at = fire.subject as? Subject.Point ?: return null
+        return PointCue(fire, station.name, at.lat, at.lon)
+    }
+
+    /**
+     * The spot inside a point cue for the AI to narrate: one not talked about on this ride yet, the
+     * most notable, then the nearest its middle.
+     */
+    private fun pointSpot(s: RideSession, cue: PointCue): PoiSpot? {
+        val radius = (cue.fire.subject as? Subject.Point)?.radiusM ?: return null
+        val middle = LatLon(cue.lat, cue.lon)
+        val here = lastLocation?.let { LatLon(it.latitude, it.longitude) }
+        val poi = app.spots.spots.value
+            .filter { !s.alreadyTalked(it) }
+            .map { it to RouteGeometry.distanceM(middle, LatLon(it.lat, it.lon)) }
+            .filter { (_, d) -> d <= radius }
+            .minWithOrNull(compareBy<Pair<Poi, Double>> { (p, _) -> -p.notability }.thenBy { (_, d) -> d })?.first ?: return null
+        return PoiSpot(poi, here?.let { RouteGeometry.distanceM(it, LatLon(poi.lat, poi.lon)).toInt() })
+    }
+
+    /** What a cue says now, counted for its `repeat` whether or not it has a line (it isn't tried again this ride). */
+    private suspend fun cueLine(s: RideSession, fire: CueFire, station: Station, ride: RideContext, now: Long): Line? {
+        val line = app.cues.speak(fire, station, ride)
+        app.cues.record(fire, s.shownCues, now)
+        app.diagnostics.event("cue", "cue" to fire.cue.id, "key" to fire.key, "chars" to line?.let { SpeechBudget.chars(it.text) }, "credit" to line?.credit)
+        return line
+    }
+
     private fun maxCharsNow(): Int = SpeechBudget.maxChars(app.settings.settings.value.values, motion.state(System.currentTimeMillis()))
 
     /** What a decision is about, for the record: a spot's name, or the minutes before sunset. */
     private fun about(d: RideDecision): Any? = when (d) {
         is RideDecision.Spot -> "${d.poi.name} ${d.distanceM}m"
         is RideDecision.Defer -> d.poi.name
-        is RideDecision.Deferred -> d.talk.poi.name
+        is RideDecision.Deferred -> d.talk.name
+        is RideDecision.Point -> "${d.cue.fire.cue.id} ${d.cue.name}"
         is RideDecision.Sunset -> d.minutesLeft
         is RideDecision.WeatherTurn -> "${d.change.kind} ${d.change.minutes}min"
         is RideDecision.AmenityNear -> "${d.advice.facility.kind.name} ${d.advice.distanceM}m ${d.advice.side}"

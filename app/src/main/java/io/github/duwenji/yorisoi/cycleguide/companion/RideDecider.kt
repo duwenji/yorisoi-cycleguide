@@ -5,6 +5,7 @@ import io.github.duwenji.yorisoi.core.format.TalkLevel
 import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.cycleguide.style.StyleValues
+import io.github.duwenji.yorisoi.kit.channel.material.CueFire
 import io.github.duwenji.yorisoi.kit.companion.TalkEngine
 import io.github.duwenji.yorisoi.kit.companion.TalkGates
 import io.github.duwenji.yorisoi.kit.companion.TalkRule
@@ -18,8 +19,12 @@ import io.github.duwenji.yorisoi.kit.geo.weather.WeatherChangeKind
  * A spot in the fan ahead of the rider ([Ahead.isAhead]), as the ride service sees it.
  *
  * @param alreadyThisRide talked about (or kept for later) on this ride already
+ * @param cued a channel's cue names it, by its id or name (F-32)
  */
-data class AheadSpot(val poi: Poi, val distanceM: Double, val alreadyThisRide: Boolean = false)
+data class AheadSpot(val poi: Poi, val distanceM: Double, val alreadyThisRide: Boolean = false, val cued: Boolean = false)
+
+/** A channel's point cue the rider is inside (F-32), its place named after the channel. */
+data class PointCue(val fire: CueFire, val name: String, val lat: Double, val lon: Double)
 
 /**
  * Everything [RideDecider] reads, as plain values gathered by the ride service each time.
@@ -57,6 +62,8 @@ data class RideSituation(
     val facilities: List<NearFacility> = emptyList(),
     val mentionedFacilities: Set<String> = emptySet(),
     val amenityMentionedAt: Map<Amenity, Long> = emptyMap(),
+    /** The channel's point cue the rider is inside and that may still fire on this ride. */
+    val pointCue: PointCue? = null,
 ) : TalkGates<RideGate> {
     override fun isOpen(gate: RideGate): Boolean = when (gate) {
         RideGate.NOT_QUIET -> !quiet
@@ -96,6 +103,8 @@ sealed interface RideDecision {
     /** Too late to finish before the spot: keep it for the next stop. Says nothing. */
     data class Defer(val poi: Poi) : RideDecision
     data class Deferred(val talk: DeferredTalk, val maxChars: Int) : RideDecision
+    /** A channel's point cue (F-32): its spoken presentation. */
+    data class Point(val cue: PointCue, val maxChars: Int) : RideDecision
     data class AmenityNear(val advice: AmenityAdvice) : RideDecision
     data class Rest(val minutes: Int, val maxChars: Int) : RideDecision
     data class Milestone(val maxChars: Int) : RideDecision
@@ -138,15 +147,20 @@ object RideDecider {
         Rule("spot", setOf(RideGate.NOT_QUIET, RideGate.SPOT_GAP, RideGate.NOT_SWITCHED)) spot@{ s ->
             val speed = s.speedMps
             if (s.state != MotionState.MOVING || speed == null || TalkEventKind.SPOT !in s.events) return@spot null
+            // A spot a cue names is the channel's own choice: neither the style's scale nor its skipped kinds hold it back.
             val spot = s.ahead
-                .filter { !it.alreadyThisRide && it.poi.category !in s.skippedCategories && s.values.style.spotScale.accepts(it.poi) }
+                .filter { !it.alreadyThisRide && (it.cued || (it.poi.category !in s.skippedCategories && s.values.style.spotScale.accepts(it.poi))) }
                 .filter { it.distanceM <= s.values[StyleItem.AHEAD_M] }
-                .minByOrNull { it.distanceM } ?: return@spot null
+                .minWithOrNull(compareBy<AheadSpot> { it.distanceM }.thenBy { !it.cued }) ?: return@spot null
             when (Ahead.timing(spot.distanceM, speed, SpeechBudget.seconds(s.values, s.state))) {
                 Timing.WAIT -> null
                 Timing.NOW -> RideDecision.Spot(spot.poi, spot.distanceM.toInt(), s.maxChars)
                 Timing.TOO_LATE -> RideDecision.Defer(spot.poi)
             }
+        },
+        // Inside a channel's point cue (F-32), riding or stopped.
+        Rule("point", setOf(RideGate.NOT_QUIET, RideGate.SPOT_GAP, RideGate.NOT_SWITCHED)) { s ->
+            s.pointCue?.let { RideDecision.Point(it, s.maxChars) }
         },
         // Stopped, at a light too: what was kept while riding, if it fits now.
         Rule("deferred", setOf(RideGate.NOT_QUIET, RideGate.NOT_SWITCHED)) deferred@{ s ->

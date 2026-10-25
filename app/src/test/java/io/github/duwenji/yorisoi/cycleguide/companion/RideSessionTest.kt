@@ -63,6 +63,19 @@ class RideSessionTest {
     }
 
     @Test
+    fun `a point cue's line kept for a stop is said there, and isn't a spot talked about (F-32)`() {
+        val s = RideSession(start)
+        s.keepPoint("資料で話す", 35.0, 139.0, "地点の話", "文: 運営の AI", start)
+        val kept = s.deferred.single()
+        assertEquals(null, kept.poi)
+        assertEquals(LatLon(35.0, 139.0), LatLon(kept.lat, kept.lon))
+        s.carriedOut(RideDecision.Deferred(kept, 150), start + 10_000)
+        assertTrue(s.deferred.isEmpty())
+        assertTrue(s.spotNames.isEmpty())
+        assertEquals(start + 10_000, s.lastSpotTalkAt)
+    }
+
+    @Test
     fun `the last four lines and the spots talked about are remembered`() {
         val s = RideSession(start)
         listOf("一", "二", "三", "四", "五").forEach(s::remember)

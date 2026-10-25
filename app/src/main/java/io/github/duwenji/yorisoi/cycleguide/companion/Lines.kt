@@ -26,8 +26,17 @@ object Lines {
         is RideDecision.Defer, RideDecision.Nothing -> null
     }
 
-    /** Before the first ride and when earphones connect (requirements S-3). */
+    /** Read out when earphones connect, once a ride (requirements S-3). */
     const val EARPHONE_NOTICE = "周りの音が聞こえる状態で使ってください。イヤホンで両耳をふさぐと、車や人の近づく音が聞こえません。"
+
+    /**
+     * Shown before the first ride (requirements S-3, S-5): the rules as checked for the release
+     * (docs/release.md「法令の確認」). Shown, not read out.
+     */
+    const val SAFETY_NOTICE = "自転車を運転しながらスマートフォンを手に持って使うことや、画面を見続けることは、道路交通法で禁止されています（16 歳以上は反則金 12,000 円）。" +
+        "このアプリは画面を見ずに使えます。操作は止まってからにしてください。\n\n" +
+        "周りの音が聞こえない状態でのイヤホンの使用も、多くの都道府県の規則で禁止されています。片耳や骨伝導のイヤホンの扱いは都道府県によって違います。" +
+        "周りの音が聞こえる状態で使ってください。"
 
     fun start(): String = "出発しましょう。周りの音が聞こえる状態で、安全に走ってください。"
 

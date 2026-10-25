@@ -3,6 +3,9 @@ package io.github.duwenji.yorisoi.cycleguide.guide
 import io.github.duwenji.yorisoi.core.prompt.PromptTemplates
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.kit.channel.Station
+import io.github.duwenji.yorisoi.kit.channel.material.Ground
+import io.github.duwenji.yorisoi.kit.channel.material.Grounding
+import io.github.duwenji.yorisoi.kit.channel.material.Subject
 import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.weather.Weather
 import io.github.duwenji.yorisoi.kit.llm.OutputCheck
@@ -14,9 +17,20 @@ import kotlin.coroutines.cancellation.CancellationException
 /** A line to say, and whose words it is: the AI's carry a credit (platform ADR-AI-ROLES H-15), the app's fixed ones none. */
 data class Line(val text: String, val credit: String? = null)
 
+/** A spot as kit-channel matches a collection's texts to it (API-004 `about`). */
+data class PoiSpot(val poi: Poi, override val distanceM: Int?) : Subject.Spot {
+    override val id: String get() = poi.id
+    override val name: String get() = poi.name
+    override val lat: Double get() = poi.lat
+    override val lon: Double get() = poi.lon
+    override val category: String get() = poi.category
+}
+
 /**
  * The AI's lines on a ride: a spot ahead or passed, and the companion's remarks, written from the
- * prompt pack with the channel's slots and the length the ride allows now. Null when the AI can't
+ * prompt pack with the channel's slots and the length the ride allows now. A spot's request carries
+ * the texts about it that the channel's collections let the AI take as fact (API-004「AI の根拠」),
+ * and the line then names whose they were. Null when the AI can't
  * be had (none set up, the day's limit, a failure) or its reply can't be read out (contact details);
  * the ride service then says the fixed line.
  *
@@ -29,11 +43,15 @@ class Narrator(
     private val aiName: () -> String,
     private val onError: (Exception) -> Unit = {},
 ) {
-    suspend fun spot(poi: Poi, distanceM: Int?, riding: Boolean, station: Station, maxChars: Int): Line? = ask(
-        Purpose.GUIDE,
-        prompts.render(Prompts.Guide.SYSTEM, Prompts.guideSystemVars(station::slot, maxChars)),
-        prompts.render(Prompts.Guide.USER, spotVars(poi, distanceM, riding)),
-    )
+    suspend fun spot(poi: Poi, distanceM: Int?, riding: Boolean, station: Station, maxChars: Int): Line? {
+        val grounds = Grounding.collect(PoiSpot(poi, distanceM), station)
+        return ask(
+            Purpose.GUIDE,
+            prompts.render(Prompts.Guide.SYSTEM, Prompts.guideSystemVars(station::slot, maxChars)),
+            prompts.render(Prompts.Guide.USER, spotVars(poi, distanceM, riding, grounds)),
+            basedOn = grounds.map { it.producerName }.distinct(),
+        )
+    }
 
     suspend fun talk(event: Prompts.Event, eventVars: Map<String, Any?>, situation: Map<String, Any?>, station: Station, maxChars: Int): Line? = ask(
         Purpose.CHAT,
@@ -41,7 +59,7 @@ class Narrator(
         Prompts.companionUser(prompts, situation, event, eventVars, station::slot),
     )
 
-    private suspend fun ask(purpose: Purpose, system: String, user: String): Line? {
+    private suspend fun ask(purpose: Purpose, system: String, user: String, basedOn: List<String> = emptyList()): Line? {
         val text = try {
             ai(purpose, system, user)
         } catch (e: CancellationException) {
@@ -51,7 +69,7 @@ class Narrator(
             return null
         }
         if (text.isBlank() || OutputCheck.violation(text) != null) return null
-        return Line(text, "文: ${aiName()}")
+        return Line(text, credit(aiName(), basedOn))
     }
 
     companion object {
@@ -61,15 +79,24 @@ class Narrator(
             "heritage", "start_date", "architect", "description", "inscription", "wikipedia", "wikidata",
         )
 
-        /** Values for `guide/user`: [distanceM] null for a spot already passed. */
-        fun spotVars(poi: Poi, distanceM: Int?, riding: Boolean): Map<String, Any?> = mapOf(
+        /** Whose words a line is: the AI's, and the producers whose texts it was written from (API-004 `basedOn`). */
+        fun credit(aiName: String, basedOn: List<String> = emptyList()): String =
+            listOfNotNull("文: $aiName", basedOn.takeIf { it.isNotEmpty() }?.let { "${it.joinToString("・")}の資料をもとに作成" }).joinToString(" / ")
+
+        /** Values for `guide/user`: [distanceM] null for a spot already passed; [grounds] the texts the AI may take as fact. */
+        fun spotVars(poi: Poi, distanceM: Int?, riding: Boolean, grounds: List<Ground> = emptyList()): Map<String, Any?> = mapOf(
             "name" to poi.name,
             "category" to poi.category,
             "riding" to riding,
             "distance_m" to distanceM,
             "passed" to (distanceM == null),
             "tags" to poi.tags.filterKeys { it in USEFUL_TAGS || it.startsWith("name:") }.map { (k, v) -> "$k=$v" },
+            "grounded" to grounds.isNotEmpty(),
+            // A ground can't close its own tag and pass for the prompt (API-004 I-15).
+            "grounds" to grounds.map { mapOf("text" to fence(it.text), "source" to fence(it.producerName)) }.ifEmpty { null },
         )
+
+        private fun fence(text: String) = text.replace('<', '＜').replace('>', '＞')
 
         /** Values for `companion/situation`. [rideMinutes] null at the start (no ride to speak of yet). */
         fun situationVars(

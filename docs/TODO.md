@@ -16,6 +16,6 @@
 - [ ] platform: `kit-channel` に `station/remote`・`report`・`material` を移す。kit-geo の施設の種類と取る種類の指定、方角の言い方。SanpoGuide を新しい版に上げて確かめる
 - [x] 施設の案内（F-7）。kit-geo の施設の種類は platform #37（v2.13.0）、SanpoGuide #62 で追従。エミュレータでロングライドの自転車店の案内と、止まっているときの地図の施設を確かめた。1.2.0 (5)
 - [x] チャンネルの取り込みと画面（F-26）。kit-channel の取り込みは platform #38（v2.14.0）・SanpoGuide #63。設定のチャンネルの欄と、開発者モードのチャンネル・リストの画面。エミュレータで組み込みのチャンネルの切り替えと、開発用のリストを足すのを確かめた（開発用のリストにはまだチャンネルがない）。1.3.0 (6)
-- [ ] 素材提供者（`Producer`・`Cues`・`Grounding`・`ResourceProducer`）を kit-channel に移し（`MaterialContext` を汎用に）、取り込んだチャンネルの素材集を使う
+- [x] 素材提供者（`Producer`・`Cues`・`Grounding`・`ResourceProducer`）を kit-channel に移し（`MaterialContext` を汎用に。platform #39・SanpoGuide #64）、取り込んだチャンネルの素材集を見どころの AI の根拠に使う。素材集のあるチャンネルが開発用のリストにまだないので、エミュレータでの確かめは残り
 - [ ] プロンプト・パックの公開と審査の見本（F-30）、管理システムの変更（X-6）
 - [ ] エミュレータでの受入条件の確認（AC-9・AC-14・AC-21・AC-23）、内部テスト

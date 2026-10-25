@@ -60,7 +60,7 @@ flowchart LR
   Loc["位置の更新<br/>2 秒ごと（止まっていても）"] --> Motion
   Motion["Motion<br/>動いている／信号待ち／休憩"] --> Talk
   Tick["タイマー 5 秒"] --> Talk
-  Talk["<b>RideDecider.decide()</b><br/>① 天気の急変（安全）<br/>② 日の入り・ライト（安全）<br/>── ここから話さない場面を守る ──<br/>③ チャンネルを切り替えた直後の一言<br/>④ 前方の見どころ（動いているとき）<br/>⑤ 取っておいた話（止まったとき）<br/>⑥ ルートから外れた（段階 3）<br/>⑦ 坂の予告（段階 3）<br/>── ここから雑談の間隔を守る ──<br/>⑧ 施設の案内（段階 2）<br/>⑨ 休憩の話（休憩のとき）<br/>⑩ 距離・時間の区切り"]
+  Talk["<b>RideDecider.decide()</b><br/>① 天気の急変（安全）<br/>② 日の入り・ライト（安全）<br/>── ここから話さない場面を守る ──<br/>③ チャンネルを切り替えた直後の一言<br/>④ 前方の見どころ（動いているとき。きっかけがあればその話）<br/>④′ きっかけの地点（段階 2）<br/>⑤ 取っておいた話（止まったとき）<br/>⑥ ルートから外れた（段階 3）<br/>⑦ 坂の予告（段階 3）<br/>── ここから雑談の間隔を守る ──<br/>⑧ 施設の案内（段階 2）<br/>⑨ 休憩の話（休憩のとき）<br/>⑩ 距離・時間の区切り"]
   Talk --> Budget["SpeechBudget<br/>今の上限の字数"]
   Budget --> Compose["文を作る<br/>AI に上限の字数を渡す"]
   Compose --> Fit{上限に収まる?}
@@ -73,7 +73,7 @@ flowchart LR
 | ゲート | 開いている条件 | かかるルール |
 |---|---|---|
 | `NOT_QUIET` | 止まっている。または、動いていて、信号から 30 m より離れ、走り方の「話さない速さ」より遅い（F-5） | ③〜⑩ |
-| `SPOT_GAP` | 前の見どころの話から、走り方の間隔 × チャンネルの頻度の倍率が過ぎた | ④ |
+| `SPOT_GAP` | 前の見どころの話から、走り方の間隔 × チャンネルの頻度の倍率が過ぎた | ④・④′ |
 | `CHAT_GAP` | 前の話から、雑談の間隔が過ぎた | ⑧〜⑩ |
 | `NOT_SWITCHED` | チャンネルを切り替えてから 1 分が過ぎた | ④〜⑩ |
 
@@ -135,7 +135,10 @@ flowchart LR
 | 履歴の画面（F-20・F-28） | `HistoryScreen` は一覧（日時・距離・時間）と 1 件の画面（`SpotMap` の `fitWalked` で走った道と話した見どころ、振り返り、見どころごとの話）です。走行中は開けません（S-2） |
 | 施設の案内（F-7） | kit-geo の `FacilityKind` に、駐輪場（`amenity=bicycle_parking`）・コンビニ（`shop=convenience`）・自転車店（`shop=bicycle`）・空気入れ（`amenity=bicycle_repair_station` で `service:bicycle:pump=yes` のもの、`amenity=compressed_air`）を足し、取る種類を `SpotRepository` に渡せるようにします（渡さなければ今と同じ。SanpoGuide は変えない）。`Amenity` は `FacilityKind` の組み合わせに対応させます（トイレ＝トイレ、水分＝水飲み場・自動販売機、ひと休み＝休憩所・ベンチ）。取るのはどの走り方の種類も合わせたもの（`Amenity.SEARCHED`）で、走り方を変えても取り直しません。話すのと、止まっているときの地図に出すのは、走り方の種類だけです（AC-14） |
 | 施設の判定（F-7） | `AmenityAdvisor`（Android に依存しない）が、前方（`Ahead` の扇形、`AHEAD_M` まで）の施設から、いま話すものを 1 つ選びます。ルール ⑧ で、`CHAT_GAP`・`NOT_QUIET`・`NOT_SWITCHED` をかけます。前方の施設は 50 m より先で、近いものから選びます。種類ごとの条件は、トイレ・ひと休み・補給が走り始めてから、または前に同じ種類を話してから「トイレ・ひと休み・補給を知らせる間隔」（`AMENITY_GAP_MIN`。ポタリング 45 分・ロングライド 60 分）、水分が気温 25℃ 以上、駐輪場が休憩のとき（向きを問わず 300 m 以内）、自転車店・空気入れが走行ごとに一度です。同じ施設は走行ごとに一度だけです。文は定型（「200メートル先に、トイレがあります。」。距離は 50 m 単位、名前があれば添える）です。SanpoGuide の `FacilityAdvisor` は歩く人の近さで選ぶので、条件が違います。共通にするのは方角の言い方（kit-geo の `relativeDirection`）だけです |
-| チャンネルの取り込み（F-26） | platform に移した `kit-channel` の `ThirdPartyChannels`（`ChannelSync`・`ChannelStore`）を使います。アプリの見え方は `CycleProfile`（`AppIds.CYCLEGUIDE`・`Activity.CYCLE`・使える機能は管理システムの `ecosystem.ts` と同じ `slot:guide`・`slot:companion`・`present:speak`）で渡します。リストは起動時と走行の開始時に、1 日たっていれば確かめます。`activities` に `cycle` を含まないチャンネルは、互換性の確かめで外れます（AC-9）。素材集は、見どころの AI の依頼の根拠に使います（`Narrator`）。`kit-channel` の `Grounding` が、チャンネルが使う素材集のうち AI の根拠に使ってよいもの（`grants.grounding`）から、そのスポットについての資料を最大 3 つ・1,500 字まで集め、`guide/user` の `<資料 出典="…">` に入れます（山かっこは全角に）。資料を使った話の出典には「〇〇の資料をもとに作成」を足します。きっかけ（`trigger`）はこのアプリの機能にないので、きっかけを素材にする `CueFinder`・`CuePresenter` は使いません |
+| チャンネルの取り込み（F-26） | platform に移した `kit-channel` の `ThirdPartyChannels`（`ChannelSync`・`ChannelStore`）を使います。アプリの見え方は `CycleProfile`（`AppIds.CYCLEGUIDE`・`Activity.CYCLE`・使える機能は管理システムの `ecosystem.ts` と同じ `slot:guide`・`slot:companion`・`trigger:spot`・`trigger:point`・`present:speak`）で渡します。リストは起動時と走行の開始時に、1 日たっていれば確かめます。`activities` に `cycle` を含まないチャンネルは、互換性の確かめで外れます（AC-9）。素材集は、見どころの AI の依頼の根拠に使います（`Narrator`）。`kit-channel` の `Grounding` が、チャンネルが使う素材集のうち AI の根拠に使ってよいもの（`grants.grounding`）から、そのスポットについての資料を最大 3 つ・1,500 字まで集め、`guide/user` の `<資料 出典="…">` に入れます（山かっこは全角に）。資料を使った話の出典には「〇〇の資料をもとに作成」を足します。素材集はきっかけで使うものしか宣言できない（API-CHANNEL-PACKAGE）ので、資料が届くのは、きっかけ（F-32）を持つチャンネルです |
+| きっかけ（F-32） | `kit-channel` の `CueFinder`（当たりの判定と `repeat` の回数。回数は `files/cues.json`）と `CuePresenter` を使います。`CuePresenter` には出す見せ方を `{speak}` だけ渡し、ほかの見せ方の素材は作りません（X-7。カードに AI の解説を指していても AI を呼ばない）。読み上げに使うのは、最初の読み上げの見せ方の、最初の文字の素材です。組み込みの素材提供者は `builtin:ai-guide`（`Narrator.spot`。依頼の `grounding` をそのまま資料にする）と `builtin:fallback-text`（定型の見どころの文）だけで、ほかの組み込み（写真・背景音・雰囲気の絵・話しかけ）は持たないので、候補の次に進みます。走行の様子（`RideSituation`。走っているか・いまの上限の字数）は `Situation` で渡し、`builtin:ai-guide` はその字数で頼みます |
+| スポットのきっかけ（F-32・ルール ④） | `RideService` が前方の見どころごとに、名前・OSM の ID で指すきっかけがあるかを見て `AheadSpot.cued` に入れます。ルール ④ は、きっかけで指された見どころを、走り方の見どころの大きさ（`spotScale`）と飛ばす種類にかけずに選び、同じ距離なら先に選びます（種類で指すきっかけ `anySpot` は選び方を変えない）。話すときに `CueFinder.spot` が当たれば、そのきっかけの読み上げを話し、当たらない（回数を使い切った）か素材がなければ、今までどおり `Narrator.spot` です。文が走行中の上限を超えたら、今の見どころと同じく `DeferredTalk` に取っておきます。言ったときに回数を数えます |
+| 地点のきっかけ（F-32・ルール ④′） | `RideService` が位置の更新ごとに `CueFinder.point` で、いる地点のきっかけを探し、`RideSituation.pointCue` に入れます。ルール ④′ は `NOT_QUIET`・`SPOT_GAP`・`NOT_SWITCHED` をかけ、走っていても止まっていても話します（ルール ④ のあと）。上限を超える文は `DeferredTalk` に取っておきます。`DeferredTalk` は見どころ（`Poi`）の代わりに、名前と位置を持つ形にします（地点のきっかけの名前はチャンネルの名前）。地点の話は、履歴の「話した見どころ」に入れません |
 | チャンネルの画面（F-20・F-26） | 設定の「チャンネル」で、組み込みと取り込んだチャンネルから選びます（走行中は変えられません）。`ChannelsScreen`（リストの追加・チャンネルの取り込みと削除・通報）は SanpoGuide の画面を元に、このアプリで書きます（画面はアプリに置く、E-4）。走行の外で、開発者モードのときだけ開けます（SanpoGuide と同じ。エコシステムのリストが公開されるまで）。取り込んだチャンネルは、話す量を見せて利用者が「使う」を選んでから使います（platform ADR-AI-ROLES H-9）。試用チケットはまだ読めません |
 | プロンプト・パックの公開（F-30） | `:prompts` を GitHub Packages に公開します（`io.github.duwenji.yorisoi.cycleguide:prompts`、版は `cycleguidePromptsVersion`）。審査の見本（`ReviewSamples`）を足し、`cycle` のチャンネルを、このアプリが送るのと同じプロンプトで組み立てます |
 | 審査の見本（X-6） | yorisoi-console の validator が、SanpoGuide のパックと CycleGuide のパックの両方を使い、チャンネルの `activities` で選びます（`walk` は SanpoGuide、`cycle` は CycleGuide。両方を含むときは両方の見本）。どちらも含まないときだけ `noRepresentativeApp` を返します（AC-23） |
@@ -193,6 +196,8 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 | 1 | core-format | `cycleguide` を含む版を公開する（PR #29 は版を上げていない） |
 | 1 | yorisoi-console | アプリの一覧（`ecosystem.ts`）・中継の受け付けるパッケージ（`relay-config.ts`）・段階の版（`appStageVersions`）に CycleGuide を足す（要件 X-5） |
 | 2 | yorisoi-console | `cycle` の見本を、CycleGuide のプロンプト・パックで作る（X-6） |
+| 2 | kit-channel | `CuePresenter` に出す見せ方の集まりを渡せるようにする（渡さなければ今と同じ。SanpoGuide は変えない）（X-7） |
+| 2 | yorisoi-console | `ecosystem.ts` の cycleguide の機能に `trigger:spot`・`trigger:point` を足す。通しの確認の台本（`tools/e2e/app-check.ts --cycle`）を、地点のきっかけ付きにする（X-7） |
 | 3 | kit-geo | 自転車のルート、線に沿った取得、標高 |
 
 ## 段階 1 の実装の順番
@@ -212,7 +217,9 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 3. 施設の案内（`AmenityAdvisor`・ルール ⑧、F-7）。場面のテストを書く
 4. チャンネルの取り込みと画面（`CycleProfile`・`ChannelsScreen`、F-26）
 5. プロンプト・パックの公開と審査の見本（F-30）、管理システムの変更（X-6）
-6. エミュレータでの受入条件の確認（AC-9・AC-14・AC-21・AC-23）、内部テスト
+6. エミュレータでの受入条件の確認（AC-9・AC-14・AC-21・AC-23）
+7. platform: `CuePresenter` の見せ方の絞り込み。管理システム: `ecosystem.ts` の機能と通しの確認の台本（X-7）
+8. CycleGuide: きっかけ（`CycleProfile` の機能・組み込みの素材提供者・ルール ④・④′・`DeferredTalk`、F-32）。場面のテストを書く。エミュレータで AC-31・AC-32 を確かめ、内部テストに出す
 
 ## 未決事項
 

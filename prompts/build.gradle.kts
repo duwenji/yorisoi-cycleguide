@@ -1,10 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// CycleGuide's prompt pack: the app's prompt files and its built-in channels. Plain JVM so the
+// CycleGuide's prompt pack: the app's prompt files, its built-in channels and the review samples. Plain JVM so the
 // channel management system renders exactly the prompts the app sends (platform
 // ADR-ECOSYSTEM-PLATFORM E-18, E-26: the representative app for `cycle`).
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    `maven-publish`
 }
 
 group = "io.github.duwenji.yorisoi.cycleguide"
@@ -13,6 +14,7 @@ version = providers.gradleProperty("cycleguidePromptsVersion").get()
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
 }
 
 kotlin {
@@ -51,4 +53,33 @@ val channelIndex by tasks.registering {
 }
 sourceSets.main {
     resources.srcDir(channelIndex)
+}
+
+// Published to GitHub Packages for the channel management system (requirements F-30, X-6).
+// The yorisoi version it depends on must be published first. Users add org.json themselves.
+publishing {
+    publications {
+        create<MavenPublication>("prompts") {
+            artifactId = "prompts"
+            from(components["java"])
+            pom {
+                name.set("CycleGuide prompts")
+                description.set(
+                    "CycleGuide's prompt pack: its prompts, built-in channels and review samples. " +
+                        "Requires org.json on the classpath.",
+                )
+                url.set("https://github.com/duwenji/yorisoi-cycleguide")
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/duwenji/yorisoi-cycleguide")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
 }

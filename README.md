@@ -14,7 +14,7 @@
 | モジュール | 中身 |
 |---|---|
 | `:app` | 画面と常駐の処理 |
-| `:prompts`（JVM） | プロンプト・パック。組み込みのチャンネル（`prompts/src/main/resources/cycleguide/channels/`） |
+| `:prompts`（JVM） | プロンプト・パック。組み込みのチャンネル（`prompts/src/main/resources/cycleguide/channels/`）と審査の見本（`ReviewSamples`）。GitHub Packages に公開する（`io.github.duwenji.yorisoi.cycleguide:prompts`、[docs/release.md](docs/release.md)） |
 
 ## ビルド
 

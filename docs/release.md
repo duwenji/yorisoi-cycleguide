@@ -25,6 +25,10 @@
 6. 新しいアプリでは、アプリの審査を通るまで、内部テストのテスターには仮のアプリ名（パッケージ名と「unreviewed」）で見える。審査の結果は [公開の概要] で確かめる。審査を通るまでクローズドテスト（alpha）には出せない（API が「draft app」として断る）
 7. テスターは参加用 URL をブラウザで開き、テスターとして登録した Google アカウントで参加する。端末に複数のアカウントがあると、Play ストアが別のアカウントで開いて黒い画面のまま止まることがある。Play ストアの右上でアカウントを切り替える
 
+## プロンプト・パックの公開
+
+チャンネル管理システムの審査（`cycle` のチャンネルの見本、X-6）は、このアプリが送るのと同じプロンプトを使うため、`:prompts` を GitHub Packages に公開する（`io.github.duwenji.yorisoi.cycleguide:prompts`、要件 F-30）。プロンプト・組み込みのチャンネル・審査の見本（`ReviewSamples`）を変えたら、`gradle.properties` の `cycleguidePromptsVersion` を上げ、main に入れてからタグ `prompts-v<版>` を push する（`.github/workflows/publish.yml`。タグと版が違うと止まる）。使う yorisoi の版は先に公開しておく。
+
 ## 法令の確認
 
 注意書き（初めて走る前のダイアログ。`Lines.SAFETY_NOTICE`）は、次の確認に基づく（要件 S-5・AC-29）。公開のたびに、変わっていないかを確かめる。

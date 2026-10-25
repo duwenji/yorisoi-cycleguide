@@ -11,7 +11,7 @@ Google Play Console に入れる答え。入れ方（画面の場所、データ
 | プライバシーポリシー | https://duwenji.github.io/yorisoi-cycleguide/privacy-policy （GitHub Pages、main の `/docs`） |
 | 広告 | 含まない。マニフェストに `com.google.android.gms.permission.AD_ID` はない（Google のライブラリは play-services-location だけ） |
 | 公開する国・地域 | 日本だけ |
-| 価格 | 未決（[release.md](release.md#決めていないこと)） |
+| 価格 | 有料（アプリの作成のときに選んだ）。金額は公開する前に [アプリの価格設定] で決める。自動保護はオン（Play 以外から入れたものに、Play から入れるよう促す確認が入る） |
 | アプリのアクセス権 | 制限なし（ログインなし）。審査用の説明: 「AI の案内と話しかけは、設定なしで運営の AI を使える（1 日の回数に上限がある）。設定で自分の API キーに切り替えることもできる。走り始めるには位置情報の許可が要る」 |
 | 対象年齢 | 18 歳以上（子どもを対象としない） |
 | カテゴリ | アプリの「旅行＆地域情報」。タグは Travel guide・Travel & local・Maps & navigation |

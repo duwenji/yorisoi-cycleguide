@@ -1,0 +1,18 @@
+{
+  "format": 1,
+  "id": "history",
+  "version": 1,
+  "name": "歴史をたどる",
+  "summary": "寺社や史跡の由来、関わった人物の話を多めに",
+  "lang": "ja",
+  "activities": ["cycle"],
+  "genres": ["history"],
+  "greeting": "ここからは、歴史の話を多めにしますね。",
+  "talk": {
+    "level": "normal",
+    "events": { "spot": true, "revisit": true, "milestone": true, "rest": true, "start": true, "finish": true }
+  },
+  "spots": { "prefer": ["temple", "shrine", "historic", "museum"], "skip": [] },
+  "guide": { "length": "normal" },
+  "mood": { "tone": true, "sound": "auto" }
+}

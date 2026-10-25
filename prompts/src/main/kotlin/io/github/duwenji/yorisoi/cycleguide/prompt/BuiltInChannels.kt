@@ -10,7 +10,7 @@ import io.github.duwenji.yorisoi.kit.channel.ResourceChannels
 object BuiltInChannels : ResourceChannels(
     resourceDir = "cycleguide/channels",
     standardId = "standard",
-    ids = listOf("standard"),
+    ids = listOf("standard", "history", "quiet"),
 ) {
     const val STANDARD = "standard"
 }

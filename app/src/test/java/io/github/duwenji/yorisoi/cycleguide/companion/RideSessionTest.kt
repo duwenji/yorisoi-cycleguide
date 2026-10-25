@@ -115,6 +115,13 @@ class RideSessionTest {
     }
 
     @Test
+    fun `the notice before the first ride tells the rules on phones and earphones`() {
+        assertTrue(Lines.SAFETY_NOTICE.contains("道路交通法"))
+        assertTrue(Lines.SAFETY_NOTICE.contains("12,000 円"))
+        assertTrue(Lines.SAFETY_NOTICE.contains("周りの音が聞こえる状態で使ってください"))
+    }
+
+    @Test
     fun `the earphone reminder comes once a ride, when stopped`() {
         assertTrue(EarphoneRule.shouldNotice(connected = true, state = MotionState.SIGNAL_STOP, noticedThisRide = false))
         assertFalse(EarphoneRule.shouldNotice(connected = true, state = MotionState.MOVING, noticedThisRide = false))

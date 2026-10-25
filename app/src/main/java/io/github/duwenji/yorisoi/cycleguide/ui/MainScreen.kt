@@ -43,7 +43,7 @@ fun MainScreen(
     onStop: () -> Unit,
     onSettings: () -> Unit,
 ) {
-    // The reminder to keep the ears free, before the first ride (requirements S-3, AC-8).
+    // The rules on phones and earphones, before the first ride (requirements S-3, S-5, AC-8).
     var noticing by remember { mutableStateOf(false) }
     Scaffold { padding ->
         Column(
@@ -72,7 +72,7 @@ fun MainScreen(
         AlertDialog(
             onDismissRequest = { noticing = false },
             title = { Text("走る前に") },
-            text = { Text(Lines.EARPHONE_NOTICE) },
+            text = { Text(Lines.SAFETY_NOTICE) },
             confirmButton = {
                 TextButton(onClick = {
                     noticing = false

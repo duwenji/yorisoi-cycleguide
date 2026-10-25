@@ -18,10 +18,10 @@ class SpeechAndQuietTest {
 
     @Test
     fun `short while riding, longer at a light, longest at a rest`() {
-        assertEquals(15 * 6, SpeechBudget.maxChars(pottering, MotionState.MOVING))
-        assertEquals(30 * 6, SpeechBudget.maxChars(pottering, MotionState.SIGNAL_STOP))
-        assertEquals(60 * 6, SpeechBudget.maxChars(pottering, MotionState.REST))
-        assertEquals(10 * 6, SpeechBudget.maxChars(StyleValues(RideStyles.LONG_RIDE), MotionState.MOVING))
+        assertEquals(15 * SpeechBudget.CHARS_PER_SEC, SpeechBudget.maxChars(pottering, MotionState.MOVING))
+        assertEquals(30 * SpeechBudget.CHARS_PER_SEC, SpeechBudget.maxChars(pottering, MotionState.SIGNAL_STOP))
+        assertEquals(60 * SpeechBudget.CHARS_PER_SEC, SpeechBudget.maxChars(pottering, MotionState.REST))
+        assertEquals(10 * SpeechBudget.CHARS_PER_SEC, SpeechBudget.maxChars(StyleValues(RideStyles.LONG_RIDE), MotionState.MOVING))
         assertEquals(5, SpeechBudget.chars("鳥居 が\n見え"))
         assertTrue(SpeechBudget.fits("あ".repeat(90), 90))
         assertFalse(SpeechBudget.fits("あ".repeat(91), 90))

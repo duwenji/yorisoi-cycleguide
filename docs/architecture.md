@@ -102,7 +102,7 @@ flowchart LR
 
 ### 話の長さ（`SpeechBudget`）
 
-- 上限の字数 = 走り方の秒数 × 1 秒あたりの字数。1 秒あたりの字数は最初は 6 字にして、開発者モードの記録（読み上げの開始・終了の時刻）で測って直します
+- 上限の字数 = 走り方の秒数 × 1 秒あたりの字数（5 字）。1 秒あたりの字数は、開発者モードの記録（話した文の字数と、読み上げにかかった時間）で測ったもの。エミュレータで約 5 字だった
 - 上限の字数は、プロンプトのスロット（`{{max_chars}}`）で AI に渡します
 - 返事が上限を超えたら、読まずに `DeferredTalk` として取っておきます。取っておいた話は、次に止まったときに、そのときの上限に収まれば話します（信号待ちで収まらなければ、休憩まで待ちます）。見どころから 500 m 離れたもの、10 分たったものは捨てます（`DeferredTalk.prune`）
 
@@ -151,7 +151,7 @@ flowchart LR
 | `style` | 走り方と調整 | RideStyle, RideStyles, StyleValues |
 | `settings` | 設定の保存（走り方・走り方ごとの値の変更・チャンネル・イヤホンの注意を出したか） | SettingsRepository |
 | `history` | 走行の履歴（段階 2） | RideHistory |
-| `diagnostics` | 開発者モードの記録 | RideDiagnostics |
+| `diagnostics` | 開発者モードの記録の書き出し（記録そのものは platform kit-companion の `SessionRecorder`。走行の開始・位置・状態・判定・話・読み上げの時間・AI・天気・スポットの検索） | RideExport |
 | (root) | 共有部品の生成、通知チャンネルの登録 | CycleApp |
 
 ## platform に移すもの（要件 D-4）
@@ -162,7 +162,7 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 |---|---|---|---|
 | 1 | `guide/OperatorAi`・`guide/OutputCheck`・`settings/AiUsage` | `kit-llm` | `OperatorAi` が読む `BuildConfig`（中継の URL・Play Integrity）を引数にする |
 | 1 | `station/Station`・`StationRepository`、`material/ChannelMaterials`、`:prompts` の `BuiltInChannels` の読み込み | `kit-channel`（新設。`Station`・`StationRepository`・`ResourceChannels`・`ChannelMaterials`） | `Station` が持つ頻度を、コアの段階（`TalkLevel`）だけにする。間隔などの値はアプリが持つ。`StationRepository` は設定（`GuideSettings`）ではなく `ChannelChoice` を受け取り、記録（`WalkRecord`）ではなくチャンネルの key の並びから名前を作る。スロットからプロンプトの変数を作るところ（`StationPrompts`）、表示名（`StationLabels`）、費用の目安（`AiCost`）は、アプリの文面と値によるのでアプリに残す |
-| 1 | `diagnostics/WalkDiagnostics` | `kit-channel` か新しいキット（実装のときに決める） | 散歩の名前を外す |
+| 1 | `diagnostics/WalkDiagnostics` | `kit-companion`（`SessionRecorder`） | 散歩の名前を外し、開始と終了の種類の名前を引数にする（SanpoGuide は `walk_start`・`walk_end` のまま） |
 | 2 | `station/remote`（`ChannelSync`・`ChannelStore`・`ThirdPartyChannels`・`TinkEd25519`）、`report/Report` | `kit-channel` | `ChannelSync` が読む `SanpoProfile` を `AppProfile` の引数にする |
 | 2 | `material`（`Producer`・`Cues`・`Selectors`・`MaterialPlan`・`Grounding`・`ResourceProducer`） | `kit-channel` | `Producer` が読む `TalkEvent`・`WalkSession` を、汎用の文脈（`MaterialContext`、ADR-ECOSYSTEM-PLATFORM E-16）にする |
 
@@ -193,6 +193,4 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 
 | ID | 内容 | 決める時期 |
 |---|---|---|
-| A-1 | 開発者モードの記録をどのキットに置くか | 段階 1 の移し替えのとき |
-| A-2 | 1 秒あたりの字数（最初は 6 字） | 開発者モードの記録で測ってから |
 | A-3 | 速度の閾値（0.8 m/s）と中央値を取る点の数 | エミュレータと実機で走ってから |

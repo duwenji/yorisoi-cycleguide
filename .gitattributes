@@ -9,3 +9,5 @@ gradlew text eol=lf
 # and the app ships these files byte for byte. Without this, a Windows checkout with
 # core.autocrlf=true builds an APK whose built-in channels fail their own checks.
 prompts/src/main/resources/** text eol=lf
+# Play Console exports and imports the data safety answers as CRLF; keep the file as exported.
+docs/play-data-safety.csv text eol=crlf

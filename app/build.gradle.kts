@@ -1,8 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Release signing keys live outside Git, in keystore.properties at the project root
+// (storeFile, storePassword, keyAlias, keyPassword). Without it the release APK is unsigned.
+val keystoreFile = rootProject.file("keystore.properties")
+val keystore = Properties().apply { if (keystoreFile.exists()) keystoreFile.inputStream().use(::load) }
 
 android {
     namespace = "io.github.duwenji.yorisoi.cycleguide"
@@ -24,9 +31,21 @@ android {
         buildConfigField("long", "PLAY_CLOUD_PROJECT_NUMBER", "0L")
     }
 
+    signingConfigs {
+        if (keystoreFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystore.getProperty("storeFile"))
+                storePassword = keystore.getProperty("storePassword")
+                keyAlias = keystore.getProperty("keyAlias")
+                keyPassword = keystore.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {

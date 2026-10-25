@@ -18,6 +18,10 @@ class RideSession(val startedAt: Long) {
     var distanceM = 0.0
         private set
 
+    /** The way ridden so far, oldest first, for the map; thinned to [MAX_ROUTE_POINTS] on a long ride. */
+    val route: List<LatLon> get() = _route
+    private val _route = mutableListOf<LatLon>()
+
     var lastSpokeAt = 0L
         private set
     var lastSpotTalkAt = 0L
@@ -74,6 +78,12 @@ class RideSession(val startedAt: Long) {
         }
         _track.addLast(p)
         while (_track.size > TRACK_POINTS) _track.removeFirst()
+        _route += p
+        if (_route.size > MAX_ROUTE_POINTS) {
+            val thinned = RouteGeometry.thin(_route, MAX_ROUTE_POINTS / 2)
+            _route.clear()
+            _route += thinned
+        }
     }
 
     fun alreadyTalked(poi: Poi): Boolean = poi.id in talkedSpots
@@ -127,6 +137,7 @@ class RideSession(val startedAt: Long) {
     companion object {
         const val TRACK_POINTS = 30
         const val RECENT_LINES = 4
+        const val MAX_ROUTE_POINTS = 3000
         const val MIN_STEP_M = 3.0
 
         /** After a channel switch, its greeting has the floor this long. */

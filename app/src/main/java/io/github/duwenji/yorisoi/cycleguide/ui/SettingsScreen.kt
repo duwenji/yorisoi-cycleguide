@@ -188,7 +188,7 @@ private fun AboutSection(settings: RideSettings, onChange: ((RideSettings) -> Ri
     }
     Column(Modifier.padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("このアプリについて", style = MaterialTheme.typography.titleMedium)
-        Text("スポット・信号: © OpenStreetMap contributors　天気: Open-Meteo.com", style = MaterialTheme.typography.bodySmall)
+        Text("地図: 国土地理院　スポット・信号: © OpenStreetMap contributors　天気: Open-Meteo.com", style = MaterialTheme.typography.bodySmall)
         Text(
             "バージョン ${BuildConfig.VERSION_NAME}" + when {
                 settings.developerMode -> "（開発者モード）"

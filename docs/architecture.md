@@ -20,7 +20,7 @@ SanpoGuide と同じ作りを基本にします。DI ライブラリは使わず
 flowchart LR
   subgraph UI["画面（ui）"]
     MainActivity
-    MainScreen["MainScreen<br/>地図・発言カード・チャンネルの選択"]
+    MainScreen["MainScreen<br/>最後の話・地図（止まっているときだけ）"]
     RidingScreen["RidingScreen<br/>「走行中」だけ"]
     SettingsScreen["SettingsScreen<br/>走り方・値の調整・AI"]
     HistoryScreen["HistoryScreen<br/>履歴・振り返り（段階 2）"]
@@ -122,6 +122,7 @@ flowchart LR
 
 - `MainActivity` は `Motion` を見て、`MOVING` のときは `RidingScreen`（「走行中」とだけ出す暗い画面）にします。`FLAG_KEEP_SCREEN_ON` は付けません
 - 常駐の通知は、`MOVING` の間は操作のボタンを外した形に差し替えます
+- 地図（`RideMap`。kit-geo の `SpotMap`、地理院 淡色）は、走行中に止まっているときだけメインの画面に出します。現在地と向き・見つかった見どころ・今回走った道（`RideSession.route`）。走行の外では位置を使わないので出しません
 - `EarphoneWatch` は `AudioDeviceCallback` でイヤホン（Bluetooth・有線・USB）を見つけます。つながっていれば、止まっているときに走行ごとに一度、注意を読み上げます（`EarphoneRule`）。初めて走り始める前の注意は、開始の画面のダイアログで出します
 
 ### 段階 3 の部品

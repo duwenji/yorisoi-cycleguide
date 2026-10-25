@@ -31,6 +31,15 @@ class RideSessionTest {
     }
 
     @Test
+    fun `the way ridden is kept for the map, thinned on a long ride`() {
+        val s = RideSession(start)
+        repeat(RideSession.MAX_ROUTE_POINTS + 1) { i -> s.onLocation(RouteGeometry.destination(here, 0.0, i * 10.0)) }
+        assertTrue(s.route.size <= RideSession.MAX_ROUTE_POINTS)
+        assertEquals(here, s.route.first())
+        assertEquals(RideSession.MAX_ROUTE_POINTS * 10.0, s.distanceM, 1.0)
+    }
+
+    @Test
     fun `a spot kept for later is remembered, and said once at a stop`() {
         val s = RideSession(start)
         s.carriedOut(RideDecision.Defer(shrine), start + 1_000)

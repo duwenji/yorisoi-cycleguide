@@ -1,5 +1,6 @@
 package io.github.duwenji.yorisoi.cycleguide.style
 
+import io.github.duwenji.yorisoi.kit.geo.FacilityKind
 import io.github.duwenji.yorisoi.kit.geo.Poi
 
 /**
@@ -17,6 +18,7 @@ enum class StyleItem(val group: String, val label: String, val unit: String, val
     SIGNAL_STOP_SEC("止まったとき", "信号待ちとみなす長さ", "秒", 5, 60),
     REST_MIN("止まったとき", "休憩とみなす長さ", "分", 1, 15),
     QUIET_SPEED_KMH("話さない場面", "これより速いときは話さない", "km/h", 10, 60),
+    AMENITY_GAP_MIN("施設の案内", "トイレ・ひと休み・補給を知らせる間隔", "分", 15, 180),
     WEATHER_LOOKAHEAD_MIN("天気の急変", "何分先までの予報で知らせるか", "分", 15, 180),
     WEATHER_REPEAT_MIN("天気の急変", "同じ種類の予告の間隔", "分", 10, 240),
     HEAVY_RAIN_MM_PER_H("天気の急変", "「強い雨」とする雨量", "mm/h", 1, 50),
@@ -42,8 +44,24 @@ enum class SpotScale {
     }
 }
 
-/** The amenities a style points out (requirements F-7, app stage 2). */
-enum class Amenity { TOILET, WATER, BICYCLE_PARKING, REST, CONVENIENCE_STORE, BICYCLE_SHOP, PUMP }
+/**
+ * The amenities a style points out (requirements F-7), most pressing first, and the kinds of
+ * facility each is found among.
+ */
+enum class Amenity(val kinds: Set<FacilityKind>) {
+    TOILET(setOf(FacilityKind.TOILETS)),
+    WATER(setOf(FacilityKind.DRINKING_WATER, FacilityKind.VENDING_MACHINE)),
+    BICYCLE_PARKING(setOf(FacilityKind.BICYCLE_PARKING)),
+    REST(setOf(FacilityKind.SHELTER, FacilityKind.BENCH)),
+    CONVENIENCE_STORE(setOf(FacilityKind.CONVENIENCE_STORE)),
+    BICYCLE_SHOP(setOf(FacilityKind.BICYCLE_SHOP)),
+    PUMP(setOf(FacilityKind.BICYCLE_PUMP));
+
+    companion object {
+        /** Every style's amenities are searched, so switching styles needs no new search. */
+        val SEARCHED: Set<FacilityKind> = entries.flatMap { it.kinds }.toSet()
+    }
+}
 
 /**
  * A way of riding: the values the companion decides with (requirements D-5). The screens and the
@@ -78,6 +96,7 @@ object RideStyles {
             StyleItem.SIGNAL_STOP_SEC to 10,
             StyleItem.REST_MIN to 3,
             StyleItem.QUIET_SPEED_KMH to 25,
+            StyleItem.AMENITY_GAP_MIN to 45,
             StyleItem.WEATHER_LOOKAHEAD_MIN to 60,
             StyleItem.WEATHER_REPEAT_MIN to 60,
             StyleItem.HEAVY_RAIN_MM_PER_H to 8,
@@ -103,6 +122,7 @@ object RideStyles {
             StyleItem.SIGNAL_STOP_SEC to 10,
             StyleItem.REST_MIN to 5,
             StyleItem.QUIET_SPEED_KMH to 40,
+            StyleItem.AMENITY_GAP_MIN to 60,
             StyleItem.WEATHER_LOOKAHEAD_MIN to 120,
             StyleItem.WEATHER_REPEAT_MIN to 60,
             StyleItem.HEAVY_RAIN_MM_PER_H to 8,

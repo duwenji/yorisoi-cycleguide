@@ -14,6 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
 import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
 import io.github.duwenji.yorisoi.cycleguide.ride.RideService
+import io.github.duwenji.yorisoi.kit.geo.map.FacilityItem
 import io.github.duwenji.yorisoi.kit.geo.map.MapStyle
 import io.github.duwenji.yorisoi.kit.geo.map.MapTiles
 import io.github.duwenji.yorisoi.kit.geo.map.SpotItem
@@ -22,7 +23,7 @@ import io.github.duwenji.yorisoi.kit.geo.map.rememberHeading
 
 /**
  * The map while stopped on a ride (architecture.md 図 1): where the rider is and faces, the spots
- * found, and the way ridden. Never while moving (requirements S-1), and not outside a ride, when the
+ * and the style's amenities found, and the way ridden. Never while moving (requirements S-1), and not outside a ride, when the
  * app doesn't use the location (privacy policy 3); [LastRideMap] is shown then. The pale GSI map, so
  * spots and the way stand out.
  */
@@ -31,12 +32,16 @@ fun RideMap(app: CycleApp, modifier: Modifier = Modifier) {
     val location by app.spots.location.collectAsStateWithLifecycle()
     val spots by app.spots.spots.collectAsStateWithLifecycle()
     val walked by RideService.walked.collectAsStateWithLifecycle()
+    val facilities by app.spots.facilities.collectAsStateWithLifecycle()
+    val settings by app.settings.settings.collectAsStateWithLifecycle()
+    // The style's amenities only, as the companion points out (requirements F-7).
+    val kinds = settings.values.style.amenities.flatMap { it.kinds }.toSet()
     SpotMap(
         tiles = MapTiles.Gsi(MapStyle.GSI_PALE),
         location = location,
         heading = rememberHeading(location),
         spots = spots.map { poi -> SpotItem(poi, location?.let { poi.distanceFrom(it).toInt() }, visitCount = 0) },
-        facilities = emptyList(),
+        facilities = facilities.filter { it.kind in kinds }.map { f -> FacilityItem(f, location?.let { f.distanceFrom(it).toInt() }) },
         walked = walked,
         route = null,
         focus = null,

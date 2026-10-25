@@ -1,5 +1,6 @@
 package io.github.duwenji.yorisoi.cycleguide.companion
 
+import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.kit.geo.weather.WeatherChangeKind
 
 /**
@@ -21,9 +22,21 @@ object Lines {
         is RideDecision.Greeting -> decision.line
         is RideDecision.Spot -> "この先、${decision.poi.name}があります。"
         is RideDecision.Deferred -> "さきほど通った${decision.talk.poi.name}は、${decision.talk.poi.category}です。"
+        is RideDecision.AmenityNear -> amenity(decision.advice)
         is RideDecision.Rest -> "ひと休みですね。水分をとっておきましょう。"
         is RideDecision.Milestone -> "ここまで順調です。"
         is RideDecision.Defer, RideDecision.Nothing -> null
+    }
+
+    /**
+     * A facility: ahead, how far (by 50m); parking while resting, which side. Its name when it has
+     * one ("コンビニ「…」").
+     */
+    fun amenity(a: AmenityAdvice): String {
+        val what = a.facility.kind.label + (a.facility.name?.let { "「$it」" } ?: "")
+        val metres = maxOf(50, (a.distanceM + 25) / 50 * 50)
+        return if (a.amenity == Amenity.BICYCLE_PARKING) "近くの${a.side}${metres}メートルに、${what}があります。"
+        else "${metres}メートル先に、${what}があります。"
     }
 
     /** Read out when earphones connect, once a ride (requirements S-3). */

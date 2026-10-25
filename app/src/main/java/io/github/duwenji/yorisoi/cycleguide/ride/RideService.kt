@@ -27,6 +27,7 @@ import io.github.duwenji.yorisoi.cycleguide.companion.AheadSpot
 import io.github.duwenji.yorisoi.cycleguide.companion.Lines
 import io.github.duwenji.yorisoi.cycleguide.companion.Motion
 import io.github.duwenji.yorisoi.cycleguide.companion.MotionState
+import io.github.duwenji.yorisoi.cycleguide.companion.NearFacility
 import io.github.duwenji.yorisoi.cycleguide.companion.QuietZones
 import io.github.duwenji.yorisoi.cycleguide.companion.RideDecider
 import io.github.duwenji.yorisoi.cycleguide.companion.RideDecision
@@ -42,6 +43,7 @@ import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.cycleguide.ui.MainActivity
 import io.github.duwenji.yorisoi.kit.geo.LatLon
 import io.github.duwenji.yorisoi.kit.geo.RouteGeometry
+import io.github.duwenji.yorisoi.kit.geo.relativeDirection
 import io.github.duwenji.yorisoi.kit.geo.weather.Weather
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -276,6 +278,14 @@ class RideService : LifecycleService() {
             val ahead = if (here == null || way == null) emptyList() else app.spots.spots.value
                 .filter { Ahead.isAhead(here, way, LatLon(it.lat, it.lon), values[StyleItem.AHEAD_M].toDouble()) }
                 .map { AheadSpot(it, RouteGeometry.distanceM(here, LatLon(it.lat, it.lon)), s.alreadyTalked(it)) }
+            val facilities = if (here == null) emptyList() else app.spots.facilities.value.map { f ->
+                val at = LatLon(f.lat, f.lon)
+                NearFacility(
+                    f, RouteGeometry.distanceM(here, at),
+                    ahead = way != null && Ahead.isAhead(here, way, at, values[StyleItem.AHEAD_M].toDouble()),
+                    side = way?.let { relativeDirection(it.toFloat(), RouteGeometry.bearingDeg(here, at).toFloat()) } ?: "",
+                )
+            }
             val situation = RideSituation(
                 now = now, values = values, level = station.talkLevel, events = station.events,
                 skippedCategories = station.skippedCategories,
@@ -286,6 +296,8 @@ class RideService : LifecycleService() {
                 lastMilestoneDistanceM = s.lastMilestoneDistanceM, restRemarked = s.restRemarked,
                 sunsetWarned = s.sunsetWarned, weatherWarnedAt = s.weatherWarnedAt,
                 pendingGreeting = s.pendingGreeting, justSwitched = s.justSwitched(now),
+                startedAt = s.startedAt, facilities = facilities,
+                mentionedFacilities = s.mentionedFacilities, amenityMentionedAt = s.amenityMentionedAt,
             )
             val decision = RideDecider.decide(situation)
             if (decision != RideDecision.Nothing) {
@@ -351,6 +363,7 @@ class RideService : LifecycleService() {
         is RideDecision.Deferred -> d.talk.poi.name
         is RideDecision.Sunset -> d.minutesLeft
         is RideDecision.WeatherTurn -> "${d.change.kind} ${d.change.minutes}min"
+        is RideDecision.AmenityNear -> "${d.advice.facility.kind.name} ${d.advice.distanceM}m ${d.advice.side}"
         is RideDecision.Rest -> d.minutes
         else -> null
     }

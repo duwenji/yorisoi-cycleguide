@@ -1,9 +1,14 @@
 package io.github.duwenji.yorisoi.cycleguide.companion
 
+import io.github.duwenji.yorisoi.core.format.Cue
+import io.github.duwenji.yorisoi.core.format.Repeat
 import io.github.duwenji.yorisoi.core.format.TalkEventKind
+import io.github.duwenji.yorisoi.core.format.Trigger
 import io.github.duwenji.yorisoi.core.format.TalkLevel
 import io.github.duwenji.yorisoi.cycleguide.style.RideStyles
 import io.github.duwenji.yorisoi.cycleguide.style.StyleValues
+import io.github.duwenji.yorisoi.kit.channel.material.CueFire
+import io.github.duwenji.yorisoi.kit.channel.material.Subject
 import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.weather.ForecastSlot
 import io.github.duwenji.yorisoi.kit.geo.weather.Weather
@@ -68,6 +73,45 @@ class RideDeciderTest {
         assertEquals(RideDecision.Nothing, decide(atLight))
         val resting = atLight.copy(state = MotionState.REST, stoppedMs = 4 * minute, restRemarked = true)
         assertEquals(RideDecision.Deferred(long, 60 * SpeechBudget.CHARS_PER_SEC), decide(resting))
+    }
+
+    @Test
+    fun `a spot a cue names is picked though the style or the channel would pass it over (F-32)`() {
+        val chapel = poi("小さな祠", category = "祠")
+        // Too small for pottering's scale and a kind the channel skips: passed over...
+        val skipping = calm.copy(skippedCategories = setOf("祠"), ahead = listOf(AheadSpot(chapel, 160.0)))
+        assertEquals(RideDecision.Nothing, decide(skipping))
+        // ...unless a cue names it.
+        assertEquals(RideDecision.Spot(chapel, 160, 15 * SpeechBudget.CHARS_PER_SEC), decide(skipping.copy(ahead = listOf(AheadSpot(chapel, 160.0, cued = true)))))
+        // At the same distance, the cued one first.
+        val both = calm.copy(ahead = listOf(AheadSpot(shrine, 160.0), AheadSpot(poi("円覚寺", "寺院", mapOf("wikipedia" to "ja:円覚寺")), 160.0, cued = true)))
+        assertEquals("円覚寺", (decide(both) as RideDecision.Spot).poi.name)
+    }
+
+    private val area = PointCue(
+        CueFire(Cue("area", Trigger.Point(35.3258, 139.5564, 300), null, Repeat.ONCE_PER_WALK, emptyList()), Subject.Point(35.3258, 139.5564, 300), "c#area"),
+        "資料で話す", 35.3258, 139.5564,
+    )
+
+    @Test
+    fun `inside a point cue the channel's line is said, riding or stopped, behind the spot gates (F-32)`() {
+        assertEquals(RideDecision.Point(area, 15 * SpeechBudget.CHARS_PER_SEC), decide(calm.copy(pointCue = area)))
+        val stopped = calm.copy(state = MotionState.SIGNAL_STOP, speedMps = 0f, stoppedMs = 12_000, pointCue = area)
+        assertEquals(RideDecision.Point(area, 30 * SpeechBudget.CHARS_PER_SEC), decide(stopped))
+        assertEquals(RideDecision.Nothing, decide(calm.copy(pointCue = area, quiet = true)))
+        assertEquals(RideDecision.Nothing, decide(calm.copy(pointCue = area, lastSpotTalkAt = now - minute)))
+        assertEquals(RideDecision.Nothing, decide(calm.copy(pointCue = area, justSwitched = true)))
+        // A spot ahead in time comes first.
+        assertTrue(decide(calm.copy(pointCue = area, ahead = listOf(AheadSpot(shrine, 160.0)))) is RideDecision.Spot)
+    }
+
+    @Test
+    fun `a point's line kept for a stop is said there, with no fixed line in its place`() {
+        val kept = DeferredTalk(null, "地点の話", now - minute, "文: 運営の AI", "資料で話す", 35.3258, 139.5564)
+        val atLight = calm.copy(state = MotionState.SIGNAL_STOP, speedMps = 0f, stoppedMs = 12_000, deferred = listOf(kept))
+        assertEquals(RideDecision.Deferred(kept, 30 * SpeechBudget.CHARS_PER_SEC), decide(atLight))
+        assertEquals(null, Lines.of(RideDecision.Deferred(kept, 150)))
+        assertEquals(null, Lines.of(RideDecision.Point(area, 75)))
     }
 
     @Test

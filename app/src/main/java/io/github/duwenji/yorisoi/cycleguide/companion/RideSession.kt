@@ -84,6 +84,14 @@ class RideSession(val startedAt: Long) {
         _deferred += DeferredTalk(poi, text, now, credit)
     }
 
+    /** A channel's point cue (F-32) came back too long to say now: kept, written, for the next stop. */
+    fun keepPoint(name: String, lat: Double, lon: Double, text: String, credit: String?, now: Long) {
+        _deferred += DeferredTalk(null, text, now, credit, name, lat, lon)
+    }
+
+    /** The channel's cues shown on this ride, for `repeat: oncePerWalk` (kit-channel `CueFinder`). */
+    val shownCues: MutableSet<String> = mutableSetOf()
+
     val deferred: List<DeferredTalk> get() = _deferred
     private val _deferred = mutableListOf<DeferredTalk>()
 
@@ -153,9 +161,10 @@ class RideSession(val startedAt: Long) {
             }
             is RideDecision.Deferred -> {
                 _deferred.remove(decision.talk)
-                _spots += decision.talk.poi
+                decision.talk.poi?.let { _spots += it }
                 lastSpotTalkAt = now
             }
+            is RideDecision.Point -> lastSpotTalkAt = now
             is RideDecision.AmenityNear -> {
                 _mentionedFacilities += decision.advice.facility.id
                 _amenityMentionedAt[decision.advice.amenity] = now

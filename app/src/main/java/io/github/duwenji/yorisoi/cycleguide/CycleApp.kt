@@ -8,6 +8,7 @@ import android.util.Log
 import io.github.duwenji.yorisoi.core.format.material.Regions
 import io.github.duwenji.yorisoi.cycleguide.channel.CycleProfile
 import io.github.duwenji.yorisoi.cycleguide.companion.Ahead
+import io.github.duwenji.yorisoi.cycleguide.cue.RideCues
 import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.cycleguide.prompt.BuiltInChannels
@@ -16,6 +17,8 @@ import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
 import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.kit.channel.StationRepository
+import io.github.duwenji.yorisoi.kit.channel.material.CueFinder
+import io.github.duwenji.yorisoi.kit.channel.material.FileCueMemory
 import io.github.duwenji.yorisoi.kit.channel.remote.OkHttpProviderHttp
 import io.github.duwenji.yorisoi.kit.channel.remote.ThirdPartyChannels
 import io.github.duwenji.yorisoi.kit.channel.remote.TinkEd25519
@@ -62,6 +65,10 @@ class CycleApp : Application() {
     lateinit var narrator: Narrator
         private set
 
+    /** The channel's spot and point cues (requirements F-32). */
+    lateinit var cues: RideCues
+        private set
+
     /** The developer's record of each ride taken in developer mode (requirements F-29). */
     lateinit var diagnostics: SessionRecorder
         private set
@@ -98,6 +105,10 @@ class CycleApp : Application() {
             Prompts.fromResources(), ai::generate, aiName = { settings.settings.value.connection.name },
             onError = { Log.w("Narrator", "No line from the AI", it) },
         )
+        cues = RideCues(narrator, CueFinder(FileCueMemory(File(filesDir, "cues.json")))) { message, e ->
+            Log.w("RideCues", message, e)
+            diagnostics.event("producer", "message" to message, "error" to e?.toString())
+        }
         val developerMode = settings.settings.map { it.developerMode }.stateIn(appScope, SharingStarted.Eagerly, settings.settings.value.developerMode)
         val connectivity = getSystemService(ConnectivityManager::class.java)
         channels = ThirdPartyChannels(

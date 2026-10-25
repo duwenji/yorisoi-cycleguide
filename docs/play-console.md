@@ -108,4 +108,4 @@ Google Play Console に入れる答え。入れ方（画面の場所、データ
 | バックグラウンドの位置情報の権限 | 求めない（`ACCESS_BACKGROUND_LOCATION` なし。利用者が画面で「走り始める」を押したときに始める） |
 | 説明 | 利用者が「走り始める」を押してから「走行を終える」を押すまで、画面を閉じても現在地を追い、進む先の見どころの案内、止まったかどうかの判定、天気・日の入りの知らせをする。走行中は通知を出し続け、止まっているときは通知の「終了」からも終えられる |
 | 利用者への影響 | 位置を追うのをやめると、画面を閉じている間の案内と安全の知らせが途切れる |
-| 動画 | [`store/videos/foreground-service-demo.mp4`](../store/videos/foreground-service-demo.mp4)。「走り始める」→ 通知が出る → 走って画面が「走行中」になる → 見どころを話す → 止まって通知の「終了」で終える。Play Console には jsDelivr のコミット固定の URL（`https://cdn.jsdelivr.net/gh/duwenji/yorisoi-cycleguide@<コミット>/store/videos/foreground-service-demo.mp4`）を入れる |
+| 動画 | [`store/videos/foreground-service-demo.mp4`](../store/videos/foreground-service-demo.mp4)。「走り始める」→ 通知が出る → 走って画面が「走行中」になる → 見どころを話す → 止まって通知の「終了」で終える。Play Console には jsDelivr のコミット固定の URL https://cdn.jsdelivr.net/gh/duwenji/yorisoi-cycleguide@1f89878/store/videos/foreground-service-demo.mp4 を入れる（`video/mp4` で返る。`@` の後ろは動画を入れたコミット。撮り直したら URL も直す） |

@@ -30,7 +30,7 @@ Google Play Console に入れる答え。入れ方（画面の場所、データ
 | 詳しい説明 | [下の文](#詳しい説明) |
 | アプリのアイコン | [`store/icon-512.png`](../store/icon-512.png) |
 | フィーチャー グラフィック | [`store/feature-1024x500.png`](../store/feature-1024x500.png) |
-| スマートフォンのスクリーンショット | [`store/screenshots/`](../store/screenshots/) を番号の順に |
+| スマートフォンのスクリーンショット | [`store/screenshots/`](../store/screenshots/) を番号の順に。画面で入れる（`tools/play.mjs --screenshots` は、このアプリでは Play が内部エラーを返して受け付けなかった） |
 
 アイコンとフィーチャー グラフィックは [`store/src/`](../store/src/) の SVG から `sh store/src/build.sh` で作る。
 

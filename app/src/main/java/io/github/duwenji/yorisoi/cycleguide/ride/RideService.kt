@@ -34,6 +34,7 @@ import io.github.duwenji.yorisoi.cycleguide.companion.RideSession
 import io.github.duwenji.yorisoi.cycleguide.companion.RideSituation
 import io.github.duwenji.yorisoi.cycleguide.companion.SpeechBudget
 import io.github.duwenji.yorisoi.cycleguide.guide.Line
+import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
 import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.kit.channel.Station
@@ -49,8 +50,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import java.io.IOException
+import java.util.Locale
 
 /**
  * Ride mode: follows the ride in the foreground and lets the companion talk (architecture.md 図 1・図 2).
@@ -70,6 +74,9 @@ class RideService : LifecycleService() {
     private var weatherFetchedAt = 0L
     private var earphoneNoticed = false
 
+    /** The ride is ending: the look back is being written, and the companion says nothing else. */
+    private var finishing = false
+
     /** One line at a time; a decision that comes while the companion is talking waits for the next tick. */
     private val talking = Mutex()
 
@@ -82,8 +89,7 @@ class RideService : LifecycleService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         if (intent?.action == ACTION_STOP) {
-            session?.let { app.speaker.speak(Lines.finish(it.distanceM)) }
-            stopSelf()
+            finish()
             return START_NOT_STICKY
         }
         if (session == null) {
@@ -92,7 +98,10 @@ class RideService : LifecycleService() {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
             )
             val now = System.currentTimeMillis()
-            session = RideSession(now).also { it.pendingGreeting = app.stations.current.value.manifest.greeting }
+            session = RideSession(now).also {
+                it.pendingGreeting = app.stations.current.value.manifest.greeting
+                it.useChannel(app.stations.current.value.key)
+            }
             if (app.settings.settings.value.developerMode) startDiagnostics(now)
             earphones.start()
             watchSpeech()
@@ -106,7 +115,8 @@ class RideService : LifecycleService() {
     override fun onDestroy() {
         session?.let { s ->
             app.diagnostics.finish(s.startedAt)
-            LastRide.of(s, System.currentTimeMillis())?.let(app.lastRide::save)
+            // Ended some other way than by the rider (the system stopped it): kept without a look back.
+            if (!finishing) RideRecord.of(s, System.currentTimeMillis())?.let(app.history::add)
         }
         fused.removeLocationUpdates(callback)
         earphones.stop()
@@ -116,6 +126,45 @@ class RideService : LifecycleService() {
         _lastLine.value = null
         _walked.value = emptyList()
         super.onDestroy()
+    }
+
+    /**
+     * Ends the ride: the look back at it (requirements F-28) is written, said and kept with the ride,
+     * then the service stops. The rider has stopped, so it may be as long as at a rest; the fixed
+     * line when the AI doesn't answer in time.
+     */
+    private fun finish() {
+        val s = session
+        if (s == null) {
+            stopSelf()
+            return
+        }
+        if (finishing) return
+        finishing = true
+        fused.removeLocationUpdates(callback)
+        lifecycleScope.launch {
+            val endedAt = System.currentTimeMillis()
+            val recap = withTimeoutOrNull(RECAP_TIMEOUT_MS) { talking.withLock { recap(s, endedAt) } }
+            val line = recap ?: Line(Lines.finish(s.distanceM))
+            say(line, MotionState.REST)
+            RideRecord.of(s, endedAt, recap?.text)?.let(app.history::add)
+            stopSelf()
+        }
+    }
+
+    private suspend fun recap(s: RideSession, endedAt: Long): Line? {
+        val maxChars = SpeechBudget.maxChars(app.settings.settings.value.values, MotionState.REST)
+        val vars = mapOf(
+            "km" to String.format(Locale.ROOT, "%.1f", s.distanceM / 1000),
+            "minutes" to ((endedAt - s.startedAt) / 60_000).toInt(),
+            "spots" to s.spotNames.distinct().joinToString("、").ifEmpty { null },
+        )
+        val situation = Narrator.situationVars(
+            endedAt, app.settings.settings.value.values.style.label, weather,
+            rideMinutes = ((endedAt - s.startedAt) / 60_000).toInt(), distanceM = s.distanceM, spots = s.spotNames, recent = s.recentLines,
+        )
+        return app.narrator.talk(Prompts.Event.FINISH, vars, situation, app.stations.current.value, maxChars)
+            ?.takeIf { SpeechBudget.fits(it.text, maxChars) }
     }
 
     /** Starts the developer's record of this ride, with how it was set up. */
@@ -206,7 +255,7 @@ class RideService : LifecycleService() {
 
     private suspend fun maybeTalk() {
         val s = session ?: return
-        if (!talking.tryLock()) return
+        if (finishing || !talking.tryLock()) return
         try {
             if (app.speaker.isSpeaking) return
             val now = System.currentTimeMillis()
@@ -269,12 +318,12 @@ class RideService : LifecycleService() {
                     s.keepLonger(decision.poi, written.text, written.credit, now)
                     return
                 }
-                written ?: fixed
+                (written ?: fixed)?.also { s.said(decision.poi, it.text, now) }
             }
             is RideDecision.Deferred -> {
                 val kept = decision.talk
                 val written = if (kept.text != null) Line(kept.text, kept.credit) else app.narrator.spot(kept.poi, null, riding = false, station, decision.maxChars)
-                written?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) } ?: fixed
+                (written?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) } ?: fixed)?.also { s.said(kept.poi, it.text, now) }
             }
             is RideDecision.Rest -> talk(s, Prompts.Event.REST, mapOf("minutes" to decision.minutes), station, decision.maxChars) ?: fixed
             is RideDecision.Milestone -> talk(s, Prompts.Event.MILESTONE, emptyMap(), station, decision.maxChars) ?: fixed
@@ -369,6 +418,8 @@ class RideService : LifecycleService() {
         private const val ACTION_STOP = "stop"
         private const val LOCATION_MS = 2_000L
         private const val TICK_MS = 5_000L
+        // The AI's usual reply takes a few seconds; the rider shouldn't wait long for the goodbye.
+        private const val RECAP_TIMEOUT_MS = 15_000L
         // Often enough that the lookahead for weather changes stays current.
         private const val WEATHER_REFRESH_MS = 15 * 60_000L
 

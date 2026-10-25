@@ -1,5 +1,6 @@
 package io.github.duwenji.yorisoi.cycleguide.companion
 
+import io.github.duwenji.yorisoi.cycleguide.history.SpotTalk
 import io.github.duwenji.yorisoi.kit.geo.LatLon
 import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.RouteGeometry
@@ -47,6 +48,14 @@ class RideSession(val startedAt: Long) {
     val spots: List<Poi> get() = _spots
     private val _spots = mutableListOf<Poi>()
 
+    /** What was said about each spot, in order, for the history (requirements F-28). */
+    val talks: List<SpotTalk> get() = _talks
+    private val _talks = mutableListOf<SpotTalk>()
+
+    /** The channels used, in order (`Station.key`). */
+    val channels: List<String> get() = _channels
+    private val _channels = mutableListOf<String>()
+
     /** The names of the spots talked about, in order, for the AI's sense of the ride. */
     val spotNames: List<String> get() = _spots.map { it.name }
 
@@ -90,6 +99,16 @@ class RideSession(val startedAt: Long) {
     }
 
     fun alreadyTalked(poi: Poi): Boolean = poi.id in talkedSpots
+
+    /** [text] was said about [poi] at [at]. */
+    fun said(poi: Poi, text: String, at: Long) {
+        _talks += SpotTalk(poi.id, poi.name, at, text)
+    }
+
+    /** The ride goes on with the channel [key]; the same one again isn't listed twice. */
+    fun useChannel(key: String) {
+        if (_channels.lastOrNull() != key) _channels += key
+    }
 
     /** The rider is moving again after a stop: the next rest is remarked on again. */
     fun onMoving() {

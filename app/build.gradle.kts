@@ -20,8 +20,8 @@ android {
         applicationId = "io.github.duwenji.yorisoi.cycleguide"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.2.0"
+        versionCode = 6
+        versionName = "1.3.0"
 
         // The operator's AI (platform API-AI-RELAY): the development relay, as in SanpoGuide, until
         // production's is deployed. It takes this app once the console lists it (requirements X-5).
@@ -94,6 +94,9 @@ dependencies {
     implementation(libs.yorisoi.kit.companion)
     implementation(libs.yorisoi.kit.voice)
     implementation(libs.yorisoi.kit.llm)
+    // kit-channel's OkHttpProviderHttp and TinkEd25519 (third-party channels) need them.
+    implementation(libs.okhttp)
+    implementation(libs.tink.android)
 
     testImplementation(libs.junit)
     // The real org.json; Android's is a stub in local unit tests.

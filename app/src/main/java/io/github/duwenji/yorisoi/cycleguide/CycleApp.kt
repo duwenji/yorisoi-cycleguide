@@ -3,7 +3,10 @@ package io.github.duwenji.yorisoi.cycleguide
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.net.ConnectivityManager
 import android.util.Log
+import io.github.duwenji.yorisoi.core.format.material.Regions
+import io.github.duwenji.yorisoi.cycleguide.channel.CycleProfile
 import io.github.duwenji.yorisoi.cycleguide.companion.Ahead
 import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
@@ -13,6 +16,9 @@ import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
 import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.kit.channel.StationRepository
+import io.github.duwenji.yorisoi.kit.channel.remote.OkHttpProviderHttp
+import io.github.duwenji.yorisoi.kit.channel.remote.ThirdPartyChannels
+import io.github.duwenji.yorisoi.kit.channel.remote.TinkEd25519
 import io.github.duwenji.yorisoi.kit.companion.SessionRecorder
 import io.github.duwenji.yorisoi.kit.geo.LatLon
 import io.github.duwenji.yorisoi.kit.geo.OverpassClient
@@ -42,6 +48,10 @@ class CycleApp : Application() {
     lateinit var settings: SettingsRepository
         private set
     lateinit var stations: StationRepository
+        private set
+
+    /** Channels from the lists the user added (requirements F-26). */
+    lateinit var channels: ThirdPartyChannels
         private set
     lateinit var spots: SpotRepository
         private set
@@ -88,8 +98,26 @@ class CycleApp : Application() {
             Prompts.fromResources(), ai::generate, aiName = { settings.settings.value.connection.name },
             onError = { Log.w("Narrator", "No line from the AI", it) },
         )
+        val developerMode = settings.settings.map { it.developerMode }.stateIn(appScope, SharingStarted.Eagerly, settings.settings.value.developerMode)
+        val connectivity = getSystemService(ConnectivityManager::class.java)
+        channels = ThirdPartyChannels(
+            dir = File(filesDir, "channels"),
+            http = OkHttpProviderHttp("CycleGuide/${BuildConfig.VERSION_NAME}"),
+            verifier = TinkEd25519,
+            profile = CycleProfile.of(BuildConfig.VERSION_CODE),
+            allowLocalHttp = BuildConfig.DEBUG,
+            unmetered = { connectivity?.isActiveNetworkMetered == false },
+            standard = BuiltInChannels.standard(),
+            scope = appScope,
+            developerMode = developerMode,
+        ) {
+            // Only the coarse region (3-letter geohashes, about 150km) leaves the location (API-004 P-6),
+            // and only while riding: the app doesn't use the location otherwise.
+            spots.location.value?.let { Regions.around(it.latitude, it.longitude) }
+        }
         val choice = settings.settings.map { it.channelChoice }.stateIn(appScope, SharingStarted.Eagerly, settings.settings.value.channelChoice)
-        stations = StationRepository(BuiltInChannels.load(), BuiltInChannels.STANDARD, choice, appScope)
+        stations = StationRepository(BuiltInChannels.load(), BuiltInChannels.STANDARD, choice, appScope, channels.stations)
+        channels.refreshIfDue()
         spots = SpotRepository(
             OverpassClient(),
             shops = { stations.current.value.searchedKinds },

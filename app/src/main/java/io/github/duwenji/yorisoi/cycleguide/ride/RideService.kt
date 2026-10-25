@@ -105,6 +105,8 @@ class RideService : LifecycleService() {
                 it.useChannel(app.stations.current.value.key)
             }
             if (app.settings.settings.value.developerMode) startDiagnostics(now)
+            // The lists, if a day has passed: at the start, never during the ride (API-002 取得の時期).
+            app.channels.refreshIfDue()
             earphones.start()
             watchSpeech()
             startLocationUpdates()

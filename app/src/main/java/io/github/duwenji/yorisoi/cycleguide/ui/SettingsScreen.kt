@@ -36,6 +36,7 @@ import io.github.duwenji.yorisoi.kit.llm.AiRoute
 import io.github.duwenji.yorisoi.kit.llm.Provider
 import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
+import io.github.duwenji.yorisoi.cycleguide.history.RideHistory
 import io.github.duwenji.yorisoi.cycleguide.settings.RideSettings
 import io.github.duwenji.yorisoi.kit.companion.SessionRecorder
 import java.text.SimpleDateFormat
@@ -54,8 +55,8 @@ fun SettingsScreen(
     onChange: ((RideSettings) -> RideSettings) -> Unit,
     onClose: () -> Unit,
     exportRides: (Uri) -> String,
-    hasLastRide: Boolean,
-    clearLastRide: () -> Unit,
+    hasHistory: Boolean,
+    clearHistory: () -> Unit,
 ) {
     val values = settings.values
     Scaffold { padding ->
@@ -105,7 +106,7 @@ fun SettingsScreen(
                 }
             }
             item { AiSettings(settings, onChange) }
-            if (hasLastRide) item { LastRideSection(clearLastRide) }
+            if (hasHistory) item { HistorySection(clearHistory) }
             item { AboutSection(settings, onChange, exportRides) }
         }
     }
@@ -221,13 +222,16 @@ private fun AboutSection(settings: RideSettings, onChange: ((RideSettings) -> Ri
     }
 }
 
-/** The ride last finished, kept on this device for the start screen (requirements F-31). */
+/** The rides finished, kept on this device (requirements F-28, F-31). */
 @Composable
-private fun LastRideSection(clear: () -> Unit) {
+private fun HistorySection(clear: () -> Unit) {
     Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("前回の走行", style = MaterialTheme.typography.titleMedium)
-        Text("走った道と話した見どころを、この端末にだけ残して、走っていないときの画面に出します。次の走行で置き換わります。", style = MaterialTheme.typography.bodySmall)
-        OutlinedButton(onClick = clear, modifier = Modifier.fillMaxWidth()) { Text("前回の走行を消す") }
+        Text("走行の履歴", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "走った道・話した見どころとその話・振り返りを、この端末にだけ最新 ${RideHistory.MAX_RIDES} 件まで残します。いちばん新しい走行は、走っていないときの画面に出します。",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        OutlinedButton(onClick = clear, modifier = Modifier.fillMaxWidth()) { Text("履歴を消す") }
     }
 }
 

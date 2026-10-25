@@ -123,15 +123,15 @@ flowchart LR
 - `MainActivity` は `Motion` を見て、`MOVING` のときは `RidingScreen`（「走行中」とだけ出す暗い画面）にします。`FLAG_KEEP_SCREEN_ON` は付けません
 - 常駐の通知は、`MOVING` の間は操作のボタンを外した形に差し替えます
 - 地図（`RideMap`。kit-geo の `SpotMap`、地理院 淡色）は、走行中に止まっているときだけメインの画面に出します。現在地と向き・見つかった見どころ・今回走った道（`RideSession.route`）
-- 走行の外では位置を使わないので、現在地の地図は出しません。代わりに前回の走行（`LastRideMap`）を出します。始めた日時・距離・時間と、走った道の全体（`SpotMap` の `fitWalked`）・話した見どころ（`RideSession.spots`）です。`RideService.onDestroy` で `LastRide` を作り、`LastRideStore` が `files/last-ride.json` に 1 件だけ残します。道は 1000 点まで間引き、見どころは地図が描くのに要る値（ID・名前・緯度経度・種類）だけです。動かずに終えた走行（道が 2 点未満）は残さず、前の走行がそのまま残ります。設定の「前回の走行を消す」で消します
+- 走行の外では位置を使わないので、現在地の地図は出しません。代わりに前回の走行（`LastRideMap`）を出します。始めた日時・距離・時間と、走った道の全体（`SpotMap` の `fitWalked`）・話した見どころ（`RideSession.spots`）です。履歴（`RideHistory`）のいちばん新しい走行です。道は 1000 点まで間引き、見どころは地図が描くのに要る値（ID・名前・緯度経度・種類）だけです。動かずに終えた走行（道が 2 点未満）は残さず、前の走行がそのまま出ます。設定の「履歴を消す」で消します
 - `EarphoneWatch` は `AudioDeviceCallback` でイヤホン（Bluetooth・有線・USB）を見つけます。つながっていれば、止まっているときに走行ごとに一度、注意を読み上げます（`EarphoneRule`）。初めて走り始める前の注意は、開始の画面のダイアログで出します
 
 ### 段階 2 の部品
 
 | 部品 | 設計 |
 |---|---|
-| 走行の履歴（F-28） | `history` の `RideHistory` が、走り終えた走行を `files/ride-history.json` に新しい順で残します（端末の中だけ、P-1）。1 件は `LastRide` の中身（始めた日時・終えた日時・距離・走った道・話した見どころ）に、話した見どころごとの話（`SpotTalk`：見どころの ID・話した時刻・話の文）と使ったチャンネルの並びを足したものです。残すのは 500 件まで（SanpoGuide の `HistoryStore` と同じ）。`LastRideStore` は `RideHistory` に置き換え、開始の画面の前回の走行（F-31）は履歴のいちばん新しい走行を出します。設定の「前回の走行を消す」は「履歴を消す」にします |
-| 振り返り（F-28） | 走行を終えると、止まっているので長さの上限をかけずに、AI に振り返りを作らせて読み上げます（プロンプト・パックに `finish` を足す。材料は距離・時間・話した見どころの名前）。文は履歴に残し、`HistoryScreen` の 1 件の画面で地図と一緒に出します。AI が答えないときは、距離と時間だけの定型の文にします |
+| 走行の履歴（F-28） | `history` の `RideHistory` が、走り終えた走行を `files/rides/` に新しい順で残します（端末の中だけ、P-1）。一覧（`index.json`。始めた日時・終えた日時・距離・話した見どころの数・振り返り）と、1 件ごとのファイル（`<始めた日時>.json`）に分け、一覧をすぐ読めるようにします。1 件（`RideRecord`）は、始めた日時・終えた日時・距離・走った道・話した見どころ・見どころごとの話（`SpotTalk`：見どころの ID・名前・話した時刻・話の文）・使ったチャンネルの並び・振り返りです。残すのは 500 件まで（SanpoGuide の `HistoryStore` と同じ）。開始の画面の前回の走行（F-31）は履歴のいちばん新しい走行です。段階 1 の `files/last-ride.json` は、履歴が空のときに 1 件目として取り込んで消します。設定の「履歴を消す」ですべて消します |
+| 振り返り（F-28） | 走行を終えると、AI に振り返りを作らせて読み上げます（プロンプトは `companion/events/finish`。材料は距離・時間・話した見どころの名前）。止まっているので、長さの上限は休憩と同じです。位置の受け取りを止めてから作り、文は履歴に残し、`HistoryScreen` の 1 件の画面で地図と一緒に出します。AI が 15 秒のうちに答えないときは、距離だけの定型の文にします。終了のボタンを押さずにサービスが止められたときは、振り返りなしで残します |
 | 履歴の画面（F-20・F-28） | `HistoryScreen` は一覧（日時・距離・時間）と 1 件の画面（`SpotMap` の `fitWalked` で走った道と話した見どころ、振り返り、見どころごとの話）です。走行中は開けません（S-2） |
 | 施設の案内（F-7） | kit-geo の `FacilityKind` に、駐輪場（`amenity=bicycle_parking`）・コンビニ（`shop=convenience`）・自転車店（`shop=bicycle`）・空気入れ（`amenity=bicycle_repair_station` で `service:bicycle:pump=yes` のもの、`amenity=compressed_air`）を足し、取る種類を `SpotRepository` に渡せるようにします（渡さなければ今と同じ。SanpoGuide は変えない）。`Amenity` は `FacilityKind` の組み合わせに対応させ、走り方の施設の種類だけを取ります（AC-14） |
 | 施設の判定（F-7） | `AmenityAdvisor`（Android に依存しない）が、前方（`Ahead` の扇形、`AHEAD_M` まで）の施設から、いま話すものを 1 つ選びます。ルール ⑧ で、`CHAT_GAP`・`NOT_QUIET`・`NOT_SWITCHED` をかけます。種類ごとの条件は、トイレ・ひと休み・補給が走り始めてからの時間（`StyleItem` に足す）、水分が気温（天気の予報）、駐輪場が休憩とみなす停止の近く（ポタリングで寄り道するとき）、自転車店・空気入れが走行ごとに一度です。同じ施設は走行ごとに一度だけです。SanpoGuide の `FacilityAdvisor` は歩く人の近さで選ぶので、条件が違います。共通にするのは方角の言い方（`relativeDirection`）だけで、kit-geo に移します |
@@ -207,7 +207,7 @@ SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の�
 
 ## 段階 2 の実装の順番
 
-1. CycleGuide: `RideHistory`・`HistoryScreen`・振り返り（F-28）。前回の走行を履歴のいちばん新しい走行にする（platform の変更は要らない）
+1. CycleGuide: `RideHistory`・`HistoryScreen`・振り返り（F-28）。前回の走行を履歴のいちばん新しい走行にする（platform の変更は要らない）。内部テストに出す
 2. platform: `kit-channel` に `station/remote`・`report`・`material` を移す（`MaterialContext`）。kit-geo の施設の種類と取る種類の指定、方角の言い方。SanpoGuide を新しい版に上げて確かめる
 3. 施設の案内（`AmenityAdvisor`・ルール ⑧、F-7）。場面のテストを書く
 4. チャンネルの取り込みと画面（`CycleProfile`・`ChannelsScreen`、F-26）

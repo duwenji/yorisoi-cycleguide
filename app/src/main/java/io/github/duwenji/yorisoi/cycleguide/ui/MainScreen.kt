@@ -42,6 +42,8 @@ fun MainScreen(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onSettings: () -> Unit,
+    /** Opens the rides finished; null during a ride, or when there are none. */
+    onHistory: (() -> Unit)? = null,
     /** The map while stopped on a ride, or of the last ride outside one; null when there is none to show. */
     map: (@Composable (Modifier) -> Unit)? = null,
 ) {
@@ -66,6 +68,7 @@ fun MainScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("走り始める") }
             }
+            onHistory?.let { OutlinedButton(onClick = it, modifier = Modifier.fillMaxWidth()) { Text("走行の履歴") } }
             OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth()) { Text("設定") }
             Text("走っている間は画面に何も出しません。操作は止まってからにしてください。", style = MaterialTheme.typography.bodySmall)
             map?.invoke(Modifier.fillMaxWidth().weight(1f))

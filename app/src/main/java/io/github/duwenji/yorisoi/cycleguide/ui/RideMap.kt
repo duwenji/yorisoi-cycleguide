@@ -12,7 +12,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
-import io.github.duwenji.yorisoi.cycleguide.ride.LastRide
+import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
 import io.github.duwenji.yorisoi.cycleguide.ride.RideService
 import io.github.duwenji.yorisoi.kit.geo.map.MapStyle
 import io.github.duwenji.yorisoi.kit.geo.map.MapTiles
@@ -52,22 +52,28 @@ fun RideMap(app: CycleApp, modifier: Modifier = Modifier) {
  * talked about, with no position, since the app doesn't use the location then.
  */
 @Composable
-fun LastRideMap(ride: LastRide, modifier: Modifier = Modifier) {
+fun LastRideMap(ride: RideRecord, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(ride.summary(), style = MaterialTheme.typography.bodyMedium)
-        SpotMap(
-            tiles = MapTiles.Gsi(MapStyle.GSI_PALE),
-            location = null,
-            heading = null,
-            spots = ride.spots.map { SpotItem(it, distanceM = null, visitCount = 0) },
-            facilities = emptyList(),
-            walked = ride.route,
-            route = null,
-            focus = null,
-            onSpotClick = {},
-            onViewportChanged = { _, _, _, _, _ -> },
-            modifier = Modifier.fillMaxWidth().weight(1f).clipToBounds(),
-            fitWalked = true,
-        )
+        Text("前回の走行: ${ride.summary.text()}", style = MaterialTheme.typography.bodyMedium)
+        PastRideMap(ride, Modifier.fillMaxWidth().weight(1f))
     }
+}
+
+/** A finished ride's whole way and the spots talked about, with no position. */
+@Composable
+fun PastRideMap(ride: RideRecord, modifier: Modifier = Modifier) {
+    SpotMap(
+        tiles = MapTiles.Gsi(MapStyle.GSI_PALE),
+        location = null,
+        heading = null,
+        spots = ride.spots.map { SpotItem(it, distanceM = null, visitCount = 0) },
+        facilities = emptyList(),
+        walked = ride.route,
+        route = null,
+        focus = null,
+        onSpotClick = {},
+        onViewportChanged = { _, _, _, _, _ -> },
+        modifier = modifier.clipToBounds(),
+        fitWalked = true,
+    )
 }

@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
                         },
                         onStop = { RideService.stop(this) },
                         onSettings = { showSettings = true },
+                        map = if (state != null) { modifier -> RideMap(app, modifier) } else null,
                     )
                 }
             }

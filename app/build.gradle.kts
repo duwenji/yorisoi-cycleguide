@@ -86,6 +86,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.play.services.location)
+    // Only to name the app in the map's tile requests; the map itself is kit-geo's.
+    implementation(libs.osmdroid.android)
 
     implementation(project(":prompts"))
     implementation(libs.yorisoi.kit.geo)

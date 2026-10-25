@@ -111,6 +111,7 @@ class RideService : LifecycleService() {
         app.heading = null
         _state.value = null
         _lastLine.value = null
+        _walked.value = emptyList()
         super.onDestroy()
     }
 
@@ -173,6 +174,7 @@ class RideService : LifecycleService() {
             location.accuracy.takeIf { location.hasAccuracy() },
         )
         s.onLocation(LatLon(location.latitude, location.longitude))
+        if (s.route.size != _walked.value.size) _walked.value = s.route.toList()
         heading = Ahead.heading(location.bearing.takeIf { location.hasBearing() }, motion.speedMps, s.track)
         app.heading = heading
         app.diagnostics.event(
@@ -376,6 +378,11 @@ class RideService : LifecycleService() {
 
         /** The last line said, with its credit when the AI wrote it (platform ADR-AI-ROLES H-15). */
         val lastLine: StateFlow<Line?> = _lastLine.asStateFlow()
+
+        private val _walked = MutableStateFlow<List<LatLon>>(emptyList())
+
+        /** The way ridden so far on the current ride, for the map; empty when there is no ride. */
+        val walked: StateFlow<List<LatLon>> = _walked.asStateFlow()
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, RideService::class.java))

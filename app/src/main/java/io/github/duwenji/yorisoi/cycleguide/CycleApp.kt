@@ -27,6 +27,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import org.osmdroid.config.Configuration
 import java.io.File
 
 /**
@@ -60,6 +61,8 @@ class CycleApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // The map's tile requests name the app (osmdroid's user agent).
+        Configuration.getInstance().userAgentValue = "CycleGuide/${BuildConfig.VERSION_NAME} (Android)"
         val relay = OperatorAi.create(this, BuildConfig.AI_RELAY_URL, BuildConfig.PLAY_CLOUD_PROJECT_NUMBER)
         settings = SettingsRepository(this, operatorAvailable = relay != null)
         ai = AiGateway({ settings.settings.value.connection }, AiUsage.of(this), relay)

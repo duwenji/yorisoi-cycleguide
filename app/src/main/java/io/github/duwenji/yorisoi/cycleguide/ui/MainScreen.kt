@@ -42,6 +42,8 @@ fun MainScreen(
     onStart: () -> Unit,
     onStop: () -> Unit,
     onSettings: () -> Unit,
+    /** The map while stopped on a ride; null when there is none to show. */
+    map: (@Composable (Modifier) -> Unit)? = null,
 ) {
     // The rules on phones and earphones, before the first ride (requirements S-3, S-5, AC-8).
     var noticing by remember { mutableStateOf(false) }
@@ -66,6 +68,7 @@ fun MainScreen(
             }
             OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth()) { Text("設定") }
             Text("走っている間は画面に何も出しません。操作は止まってからにしてください。", style = MaterialTheme.typography.bodySmall)
+            map?.invoke(Modifier.fillMaxWidth().weight(1f))
         }
     }
     if (noticing) {

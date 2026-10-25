@@ -45,14 +45,22 @@ class MainActivity : ComponentActivity() {
                 val rides by app.history.rides.collectAsStateWithLifecycle()
                 var showSettings by rememberSaveable { mutableStateOf(false) }
                 var showHistory by rememberSaveable { mutableStateOf(false) }
+                var showChannels by rememberSaveable { mutableStateOf(false) }
+                val stations by app.stations.list.collectAsStateWithLifecycle()
                 when {
                     // Nothing to read while moving (requirements S-1).
                     state == MotionState.MOVING -> RidingScreen()
+                    // Not during a ride: lists are fetched at its start, never during it (API-002 取得の時期).
+                    showChannels && state == null -> {
+                        BackHandler { showChannels = false }
+                        ChannelsScreen(app, onClose = { showChannels = false })
+                    }
                     showSettings -> {
                         BackHandler { showSettings = false }
                         SettingsScreen(
                             settings, onChange = app.settings::update, onClose = { showSettings = false }, exportRides = ::exportRides,
                             hasHistory = rides.isNotEmpty(), clearHistory = app.history::clear,
+                            stations = stations, current = station, riding = state != null, onOpenChannels = { showChannels = true },
                         )
                     }
                     // Not during a ride: the history is for afterwards (S-2).

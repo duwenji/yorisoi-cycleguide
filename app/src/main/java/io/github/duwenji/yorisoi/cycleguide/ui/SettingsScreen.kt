@@ -38,6 +38,7 @@ import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
 import io.github.duwenji.yorisoi.cycleguide.history.RideHistory
 import io.github.duwenji.yorisoi.cycleguide.settings.RideSettings
+import io.github.duwenji.yorisoi.kit.channel.Station
 import io.github.duwenji.yorisoi.kit.companion.SessionRecorder
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -57,6 +58,12 @@ fun SettingsScreen(
     exportRides: (Uri) -> String,
     hasHistory: Boolean,
     clearHistory: () -> Unit,
+    /** The channels to choose from: built in, then from the lists the user added. */
+    stations: List<Station>,
+    current: Station,
+    /** A ride is on: the channel stays as it is until the ride ends. */
+    riding: Boolean,
+    onOpenChannels: () -> Unit,
 ) {
     val values = settings.values
     Scaffold { padding ->
@@ -105,10 +112,42 @@ fun SettingsScreen(
                     Text("${values.style.label}の値を元に戻す")
                 }
             }
+            item {
+                ChannelSection(
+                    stations, current, riding, onChoose = { id -> onChange { it.copy(stationId = id) } },
+                    // Lists are for developers until the ecosystem's are public, as in SanpoGuide.
+                    onOpenChannels = onOpenChannels.takeIf { settings.developerMode },
+                )
+            }
             item { AiSettings(settings, onChange) }
             if (hasHistory) item { HistorySection(clearHistory) }
             item { AboutSection(settings, onChange, exportRides) }
         }
+    }
+}
+
+/**
+ * The channel in use (requirements F-25, F-26): the built-in ones and those taken from the lists.
+ * Lists are added and their channels taken in on the channel lists screen ([onOpenChannels]; null
+ * outside developer mode).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ChannelSection(stations: List<Station>, current: Station, riding: Boolean, onChoose: (String) -> Unit, onOpenChannels: (() -> Unit)?) {
+    Column(Modifier.padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("チャンネル", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "チャンネルによって、語り手や話題、話す量が変わります。天気の急変・日の入りの案内は、どのチャンネルでも同じです。",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            stations.forEach { s ->
+                FilterChip(selected = s.id == current.id, onClick = { onChoose(s.id) }, enabled = !riding, label = { Text(s.displayName) })
+            }
+        }
+        Text(current.manifest.summary, style = MaterialTheme.typography.bodySmall)
+        if (riding) Text("走行中は変えられません。", style = MaterialTheme.typography.bodySmall)
+        onOpenChannels?.let { OutlinedButton(onClick = it, enabled = !riding, modifier = Modifier.fillMaxWidth()) { Text("チャンネル・リスト（開発者向け）") } }
     }
 }
 

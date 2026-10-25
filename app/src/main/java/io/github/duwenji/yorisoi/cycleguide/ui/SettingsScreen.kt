@@ -1,5 +1,10 @@
 package io.github.duwenji.yorisoi.cycleguide.ui
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -17,14 +22,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.duwenji.yorisoi.kit.llm.AiConnection
 import io.github.duwenji.yorisoi.kit.llm.AiRoute
 import io.github.duwenji.yorisoi.kit.llm.Provider
+import io.github.duwenji.yorisoi.cycleguide.BuildConfig
+import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
 import io.github.duwenji.yorisoi.cycleguide.settings.RideSettings
+import io.github.duwenji.yorisoi.kit.companion.SessionRecorder
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import io.github.duwenji.yorisoi.cycleguide.style.RideStyles
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 
@@ -33,7 +49,12 @@ import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
  * each value of the chosen one, grouped, with what can't work pointed out.
  */
 @Composable
-fun SettingsScreen(settings: RideSettings, onChange: ((RideSettings) -> RideSettings) -> Unit, onClose: () -> Unit) {
+fun SettingsScreen(
+    settings: RideSettings,
+    onChange: ((RideSettings) -> RideSettings) -> Unit,
+    onClose: () -> Unit,
+    exportRides: (Uri) -> String,
+) {
     val values = settings.values
     Scaffold { padding ->
         LazyColumn(
@@ -82,6 +103,7 @@ fun SettingsScreen(settings: RideSettings, onChange: ((RideSettings) -> RideSett
                 }
             }
             item { AiSettings(settings, onChange) }
+            item { AboutSection(settings, onChange, exportRides) }
         }
     }
 }
@@ -149,6 +171,49 @@ private fun AiSettings(settings: RideSettings, onChange: ((RideSettings) -> Ride
                     label = { Text(limit?.let { "${it}回" } ?: "上限なし") },
                 )
             }
+        }
+    }
+}
+
+/**
+ * The sources and the version; tapping the version seven times turns developer mode on (as
+ * Android's own), which keeps a detailed record of each ride, exported from here (requirements F-29).
+ */
+@Composable
+private fun AboutSection(settings: RideSettings, onChange: ((RideSettings) -> RideSettings) -> Unit, exportRides: (Uri) -> String) {
+    val context = LocalContext.current
+    var taps by remember { mutableIntStateOf(0) }
+    val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        uri?.let { Toast.makeText(context, exportRides(it), Toast.LENGTH_LONG).show() }
+    }
+    Column(Modifier.padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("このアプリについて", style = MaterialTheme.typography.titleMedium)
+        Text("スポット・信号: © OpenStreetMap contributors　天気: Open-Meteo.com", style = MaterialTheme.typography.bodySmall)
+        Text(
+            "バージョン ${BuildConfig.VERSION_NAME}" + when {
+                settings.developerMode -> "（開発者モード）"
+                taps in 3..6 -> "（あと ${7 - taps} 回で開発者モード）"
+                else -> ""
+            },
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.fillMaxWidth().clickable(enabled = !settings.developerMode) {
+                taps += 1
+                if (taps >= 7) onChange { it.copy(developerMode = true) }
+            }.padding(vertical = 8.dp),
+        )
+        if (settings.developerMode) {
+            Text(
+                "走行ごとの詳しい記録（位置・判定・発言・AI とのやり取り）を、この端末にだけ最新 ${SessionRecorder.MAX_SESSIONS} 件まで残します。",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            OutlinedButton(
+                onClick = { exporter.launch(RideExport.fileName(SimpleDateFormat("yyyyMMdd-HHmm", Locale.JAPAN).format(Date()))) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("走行の記録を書き出す") }
+            TextButton(onClick = {
+                taps = 0
+                onChange { it.copy(developerMode = false) }
+            }) { Text("開発者モードをやめる") }
         }
     }
 }

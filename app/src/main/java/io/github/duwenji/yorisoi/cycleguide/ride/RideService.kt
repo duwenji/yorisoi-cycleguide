@@ -19,6 +19,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
 import io.github.duwenji.yorisoi.cycleguide.R
 import io.github.duwenji.yorisoi.cycleguide.companion.Ahead
@@ -48,6 +49,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import org.json.JSONObject
 import java.io.IOException
 
 /**
@@ -91,7 +93,9 @@ class RideService : LifecycleService() {
             )
             val now = System.currentTimeMillis()
             session = RideSession(now).also { it.pendingGreeting = app.stations.current.value.manifest.greeting }
+            if (app.settings.settings.value.developerMode) startDiagnostics(now)
             earphones.start()
+            watchSpeech()
             startLocationUpdates()
             startTicker()
             _state.value = MotionState.SIGNAL_STOP
@@ -100,6 +104,7 @@ class RideService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        session?.let { app.diagnostics.finish(it.startedAt) }
         fused.removeLocationUpdates(callback)
         earphones.stop()
         session = null
@@ -107,6 +112,38 @@ class RideService : LifecycleService() {
         _state.value = null
         _lastLine.value = null
         super.onDestroy()
+    }
+
+    /** Starts the developer's record of this ride, with how it was set up. */
+    private fun startDiagnostics(id: Long) {
+        val settings = app.settings.settings.value
+        val values = settings.values
+        app.diagnostics.start(
+            id,
+            listOf(
+                "app" to BuildConfig.VERSION_NAME,
+                "style" to values.style.id,
+                "values" to JSONObject().apply { StyleItem.entries.forEach { put(it.name, values[it]) } },
+                "channel" to app.stations.current.value.key,
+                "ai" to settings.connection.name,
+                "charsPerSec" to SpeechBudget.CHARS_PER_SEC,
+            ),
+        )
+    }
+
+    /** How long each line took to read out, to check the characters a second (architecture.md A-2). */
+    private fun watchSpeech() = lifecycleScope.launch {
+        var startedAt = 0L
+        app.speaker.speaking.collect { speaking ->
+            val now = System.currentTimeMillis()
+            if (speaking) {
+                startedAt = now
+            } else if (startedAt != 0L) {
+                val text = _lastLine.value?.text
+                app.diagnostics.event("speech_done", "ms" to now - startedAt, "chars" to text?.let(SpeechBudget::chars))
+                startedAt = 0L
+            }
+        }
     }
 
     @SuppressLint("MissingPermission") // Checked by MainActivity before starting the service.
@@ -138,11 +175,24 @@ class RideService : LifecycleService() {
         s.onLocation(LatLon(location.latitude, location.longitude))
         heading = Ahead.heading(location.bearing.takeIf { location.hasBearing() }, motion.speedMps, s.track)
         app.heading = heading
+        app.diagnostics.event(
+            "location", "lat" to location.latitude, "lon" to location.longitude,
+            "speed" to location.speed.takeIf { location.hasSpeed() }, "accuracy" to location.accuracy.takeIf { location.hasAccuracy() },
+            "medianSpeed" to motion.speedMps, "heading" to heading, "km" to s.distanceM / 1000,
+        )
         lifecycleScope.launch {
+            val updates = app.spots.updates
             try {
                 app.spots.onLocation(location)
+                if (app.spots.updates != updates) {
+                    app.diagnostics.event(
+                        "spots", "source" to app.spots.source?.name?.lowercase(),
+                        "spots" to app.spots.spots.value.size, "signals" to app.spots.trafficSignals.value.size,
+                    )
+                }
             } catch (e: IOException) {
                 Log.w(TAG, "Spot search failed", e)
+                app.diagnostics.event("spot_search_failed", "error" to e.toString())
             }
             if (weatherFetchedAt == 0L) refreshWeather(location)
             maybeTalk()
@@ -184,7 +234,14 @@ class RideService : LifecycleService() {
                 pendingGreeting = s.pendingGreeting, justSwitched = s.justSwitched(now),
             )
             val decision = RideDecider.decide(situation)
-            if (decision != RideDecision.Nothing) Log.i(TAG, "$state ${motion.speedMps} quiet=${situation.quiet} ahead=${ahead.size}: $decision")
+            if (decision != RideDecision.Nothing) {
+                Log.i(TAG, "$state ${motion.speedMps} quiet=${situation.quiet} ahead=${ahead.size}: $decision")
+                app.diagnostics.event(
+                    "decision", "decision" to decision.javaClass.simpleName, "about" to about(decision),
+                    "state" to state.name, "speed" to motion.speedMps, "quiet" to situation.quiet,
+                    "ahead" to ahead.size, "deferred" to s.deferred.size,
+                )
+            }
             carryOut(s, decision, now)
         } finally {
             talking.unlock()
@@ -233,7 +290,19 @@ class RideService : LifecycleService() {
 
     private fun maxCharsNow(): Int = SpeechBudget.maxChars(app.settings.settings.value.values, motion.state(System.currentTimeMillis()))
 
+    /** What a decision is about, for the record: a spot's name, or the minutes before sunset. */
+    private fun about(d: RideDecision): Any? = when (d) {
+        is RideDecision.Spot -> "${d.poi.name} ${d.distanceM}m"
+        is RideDecision.Defer -> d.poi.name
+        is RideDecision.Deferred -> d.talk.poi.name
+        is RideDecision.Sunset -> d.minutesLeft
+        is RideDecision.WeatherTurn -> "${d.change.kind} ${d.change.minutes}min"
+        is RideDecision.Rest -> d.minutes
+        else -> null
+    }
+
     private fun onStateChanged(s: RideSession, state: MotionState) {
+        app.diagnostics.event("state", "from" to _state.value?.name, "to" to state.name, "stoppedMs" to motion.stoppedMs(System.currentTimeMillis()))
         _state.value = state
         if (state == MotionState.MOVING) s.onMoving()
         notify(rideNotification(state, _lastLine.value?.text))
@@ -241,6 +310,7 @@ class RideService : LifecycleService() {
 
     private fun say(line: Line, state: MotionState) {
         Log.i(TAG, "say: ${line.text} (${line.credit})")
+        app.diagnostics.event("said", "text" to line.text, "credit" to line.credit, "chars" to SpeechBudget.chars(line.text), "state" to state.name)
         app.speaker.speak(line.text)
         session?.remember(line.text)
         _lastLine.value = line
@@ -253,8 +323,10 @@ class RideService : LifecycleService() {
         weatherFetchedAt = now
         weather = try {
             app.weather.current(location.latitude, location.longitude)
+                .also { app.diagnostics.event("weather", "description" to it.description, "temperature" to it.temperatureC, "sunsetAt" to it.sunsetAt) }
         } catch (e: Exception) {
             Log.w(TAG, "Weather fetch failed", e)
+            app.diagnostics.event("weather_failed", "error" to e.toString())
             weather
         }
     }

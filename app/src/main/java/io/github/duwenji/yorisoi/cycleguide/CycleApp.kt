@@ -11,6 +11,7 @@ import io.github.duwenji.yorisoi.cycleguide.prompt.BuiltInChannels
 import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.kit.channel.StationRepository
+import io.github.duwenji.yorisoi.kit.companion.SessionRecorder
 import io.github.duwenji.yorisoi.kit.geo.LatLon
 import io.github.duwenji.yorisoi.kit.geo.OverpassClient
 import io.github.duwenji.yorisoi.kit.geo.SpotCache
@@ -47,6 +48,10 @@ class CycleApp : Application() {
         private set
     lateinit var narrator: Narrator
         private set
+
+    /** The developer's record of each ride taken in developer mode (requirements F-29). */
+    lateinit var diagnostics: SessionRecorder
+        private set
     val weather = WeatherClient()
 
     /** The way the rider goes, set by the ride service; the spot search looks ahead along it. */
@@ -58,7 +63,17 @@ class CycleApp : Application() {
         val relay = OperatorAi.create(this, BuildConfig.AI_RELAY_URL, BuildConfig.PLAY_CLOUD_PROJECT_NUMBER)
         settings = SettingsRepository(this, operatorAvailable = relay != null)
         ai = AiGateway({ settings.settings.value.connection }, AiUsage.of(this), relay)
-        ai.onCall = { call -> Log.i("AiGateway", "${call.kind} ${call.model} ${call.ms}ms error=${call.error} violation=${call.violation} reply=${call.reply}") }
+        diagnostics = SessionRecorder(File(filesDir, "diagnostics"), startType = "ride_start", endType = "ride_end") {
+            Log.w("SessionRecorder", "Could not write a diagnostics line", it)
+        }
+        ai.onCall = { call ->
+            Log.i("AiGateway", "${call.kind} ${call.model} ${call.ms}ms error=${call.error} violation=${call.violation}")
+            diagnostics.event(
+                "ai", "kind" to call.kind, "model" to call.model, "ms" to call.ms,
+                "system" to call.system, "user" to call.user, "reply" to call.reply,
+                "error" to call.error, "violation" to call.violation,
+            )
+        }
         narrator = Narrator(
             Prompts.fromResources(), ai::generate, aiName = { settings.settings.value.connection.name },
             onError = { Log.w("Narrator", "No line from the AI", it) },

@@ -48,7 +48,7 @@ class RideDeciderTest {
     fun `a spot ahead is talked about in time to finish before it, within the riding length`() {
         assertEquals(RideDecision.Nothing, decide(calm.copy(ahead = listOf(AheadSpot(shrine, 290.0)))))
         val due = decide(calm.copy(ahead = listOf(AheadSpot(shrine, 160.0))))
-        assertEquals(RideDecision.Spot(shrine, 160, 15 * 6), due)
+        assertEquals(RideDecision.Spot(shrine, 160, 15 * SpeechBudget.CHARS_PER_SEC), due)
     }
 
     @Test
@@ -56,7 +56,7 @@ class RideDeciderTest {
         assertEquals(RideDecision.Defer(shrine), decide(calm.copy(ahead = listOf(AheadSpot(shrine, 70.0)))))
         val kept = DeferredTalk(shrine, null, now - minute)
         val atLight = calm.copy(state = MotionState.SIGNAL_STOP, speedMps = 0f, stoppedMs = 12_000, deferred = listOf(kept))
-        assertEquals(RideDecision.Deferred(kept, 30 * 6), decide(atLight))
+        assertEquals(RideDecision.Deferred(kept, 30 * SpeechBudget.CHARS_PER_SEC), decide(atLight))
         // Not while riding.
         assertEquals(RideDecision.Nothing, decide(calm.copy(deferred = listOf(kept))))
     }
@@ -67,7 +67,7 @@ class RideDeciderTest {
         val atLight = calm.copy(state = MotionState.SIGNAL_STOP, speedMps = 0f, stoppedMs = 12_000, deferred = listOf(long))
         assertEquals(RideDecision.Nothing, decide(atLight))
         val resting = atLight.copy(state = MotionState.REST, stoppedMs = 4 * minute, restRemarked = true)
-        assertEquals(RideDecision.Deferred(long, 60 * 6), decide(resting))
+        assertEquals(RideDecision.Deferred(long, 60 * SpeechBudget.CHARS_PER_SEC), decide(resting))
     }
 
     @Test
@@ -131,7 +131,7 @@ class RideDeciderTest {
     @Test
     fun `a rest is remarked on once`() {
         val resting = calm.copy(state = MotionState.REST, speedMps = 0f, stoppedMs = 4 * minute)
-        assertEquals(RideDecision.Rest(4, 60 * 6), decide(resting))
+        assertEquals(RideDecision.Rest(4, 60 * SpeechBudget.CHARS_PER_SEC), decide(resting))
         assertEquals(RideDecision.Nothing, decide(resting.copy(restRemarked = true)))
         assertEquals(RideDecision.Nothing, decide(resting.copy(lastSpokeAt = now - minute)))
         assertEquals(RideDecision.Nothing, decide(calm.copy(state = MotionState.SIGNAL_STOP, speedMps = 0f, stoppedMs = 12_000)))
@@ -139,7 +139,7 @@ class RideDeciderTest {
 
     @Test
     fun `a milestone every few kilometres, as the style says`() {
-        assertEquals(RideDecision.Milestone(15 * 6), decide(calm.copy(distanceM = 3200.0)))
+        assertEquals(RideDecision.Milestone(15 * SpeechBudget.CHARS_PER_SEC), decide(calm.copy(distanceM = 3200.0)))
         assertEquals(RideDecision.Nothing, decide(calm.copy(distanceM = 3200.0, lastMilestoneDistanceM = 1000.0)))
         assertEquals(RideDecision.Nothing, decide(calm.copy(distanceM = 3200.0, values = StyleValues(RideStyles.LONG_RIDE))))
     }

@@ -2,6 +2,7 @@ package io.github.duwenji.yorisoi.cycleguide.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,7 +16,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
+import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
 import io.github.duwenji.yorisoi.cycleguide.companion.MotionState
 import io.github.duwenji.yorisoi.cycleguide.ride.RideService
 
@@ -44,7 +47,7 @@ class MainActivity : ComponentActivity() {
                     state == MotionState.MOVING -> RidingScreen()
                     showSettings -> {
                         BackHandler { showSettings = false }
-                        SettingsScreen(settings, onChange = app.settings::update, onClose = { showSettings = false })
+                        SettingsScreen(settings, onChange = app.settings::update, onClose = { showSettings = false }, exportRides = ::exportRides)
                     }
                     else -> MainScreen(
                         riding = state != null,
@@ -63,6 +66,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /** Writes every ride recorded in developer mode to [uri]; what to tell the developer. */
+    private fun exportRides(uri: Uri): String = try {
+        val json = RideExport.toJson(app.diagnostics.ids(), app.diagnostics::read, BuildConfig.VERSION_NAME, System.currentTimeMillis())
+        contentResolver.openOutputStream(uri)?.use { it.write(json.toString(2).toByteArray()) } ?: error("No file to write")
+        "走行の記録を書き出しました"
+    } catch (e: Exception) {
+        "書き出せませんでした: ${e.message}"
     }
 
     private fun requestPermissions() {

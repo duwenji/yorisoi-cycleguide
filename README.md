@@ -6,6 +6,8 @@
 
 - [要件定義](docs/requirements.md)
 - [設計](docs/architecture.md)
+- [公開と更新](docs/release.md)
+- [TODO](docs/TODO.md)
 
 ## 構成
 

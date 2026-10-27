@@ -49,11 +49,14 @@ class PromptsTest {
         for (station in stations) {
             val system = prompts.render(Prompts.Talk.SYSTEM, Prompts.companionSystemVars(station::slot, 90))
             assertTrue(station.id, system.contains("90字以内"))
+            assertTrue(station.id, system.contains("名前しか分からない"))
             for (event in Prompts.Event.entries) {
                 val vars = mapOf("minutes" to 4, "km" to "5.2", "spots" to "大巧寺")
                 val user = Prompts.companionUser(prompts, situation, event, vars, station::slot)
                 assertTrue("${station.id} ${event.name}", user.contains("# 出来事"))
                 assertFalse("${station.id} ${event.name}", user.contains("{{"))
+                // The look back names the spots, so it says last what it may not make up.
+                if (event == Prompts.Event.FINISH) assertTrue(user.trimEnd().endsWith("場所は名前を挙げるだけにする。"))
             }
         }
     }

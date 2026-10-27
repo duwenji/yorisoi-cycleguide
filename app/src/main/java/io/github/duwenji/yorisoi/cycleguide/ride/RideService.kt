@@ -135,6 +135,7 @@ class RideService : LifecycleService() {
         _state.value = null
         _lastLine.value = null
         _walked.value = emptyList()
+        _heading.value = null
         super.onDestroy()
     }
 
@@ -237,6 +238,7 @@ class RideService : LifecycleService() {
         if (s.route.size != _walked.value.size) _walked.value = s.route.toList()
         heading = Ahead.heading(location.bearing.takeIf { location.hasBearing() }, motion.speedMps, s.track)
         app.heading = heading
+        _heading.value = heading
         app.diagnostics.event(
             "location", "lat" to location.latitude, "lon" to location.longitude,
             "speed" to location.speed.takeIf { location.hasSpeed() }, "accuracy" to location.accuracy.takeIf { location.hasAccuracy() },
@@ -511,6 +513,14 @@ class RideService : LifecycleService() {
 
         /** The way ridden so far on the current ride, for the map; empty when there is no ride. */
         val walked: StateFlow<List<LatLon>> = _walked.asStateFlow()
+
+        private val _heading = MutableStateFlow<Double?>(null)
+
+        /**
+         * The way the rider goes ([Ahead.heading]), for the map; null when not yet known or there
+         * is no ride. Kept from the way ridden while stopped.
+         */
+        val heading: StateFlow<Double?> = _heading.asStateFlow()
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, RideService::class.java))

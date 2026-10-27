@@ -20,9 +20,10 @@ import io.github.duwenji.yorisoi.kit.geo.map.MapTiles
 import io.github.duwenji.yorisoi.kit.geo.map.SpotItem
 import io.github.duwenji.yorisoi.kit.geo.map.SpotMap
 import io.github.duwenji.yorisoi.kit.geo.map.rememberHeading
+import kotlin.math.roundToInt
 
 /**
- * The map while stopped on a ride (architecture.md 図 1): where the rider is and faces, the spots
+ * The map while stopped on a ride (architecture.md 図 1), the way ridden at the top: where the rider is and faces, the spots
  * and the style's amenities found, and the way ridden. Never while moving (requirements S-1), and not outside a ride, when the
  * app doesn't use the location (privacy policy 3); [LastRideMap] is shown then. The pale GSI map, so
  * spots and the way stand out.
@@ -32,6 +33,7 @@ fun RideMap(app: CycleApp, modifier: Modifier = Modifier) {
     val location by app.spots.location.collectAsStateWithLifecycle()
     val spots by app.spots.spots.collectAsStateWithLifecycle()
     val walked by RideService.walked.collectAsStateWithLifecycle()
+    val way by RideService.heading.collectAsStateWithLifecycle()
     val facilities by app.spots.facilities.collectAsStateWithLifecycle()
     val settings by app.settings.settings.collectAsStateWithLifecycle()
     // The style's amenities only, as the companion points out (requirements F-7).
@@ -49,8 +51,13 @@ fun RideMap(app: CycleApp, modifier: Modifier = Modifier) {
         onViewportChanged = { _, _, _, _, _ -> },
         // The map view draws past its bounds otherwise, over the buttons above it.
         modifier = modifier.clipToBounds(),
+        // The way ridden at the top, as the companion's "ahead" and "on the right" (Ahead);
+        // in steps, so the GPS's drift while stopped doesn't keep turning it.
+        up = way?.let { (it / UP_STEP_DEG).roundToInt() * UP_STEP_DEG % 360f },
     )
 }
+
+private const val UP_STEP_DEG = 10f
 
 /**
  * The ride last finished, outside a ride (requirements F-31): the whole way ridden and the spots

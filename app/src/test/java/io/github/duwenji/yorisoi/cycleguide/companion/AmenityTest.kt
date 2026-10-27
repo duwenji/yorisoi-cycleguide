@@ -101,6 +101,7 @@ class AmenityTest {
         assertEquals("200メートル先に、トイレがあります。", Lines.amenity(AmenityAdvice(Amenity.TOILET, toilet, 213, "前方")))
         assertEquals("50メートル先に、自転車店「鎌倉サイクル」があります。", Lines.amenity(AmenityAdvice(Amenity.BICYCLE_SHOP, shop, 52, "前方")))
         assertEquals("近くの右手100メートルに、駐輪場があります。", Lines.amenity(AmenityAdvice(Amenity.BICYCLE_PARKING, parking, 120, "右手")))
+        assertEquals("100メートルほどのところに、駐輪場があります。", Lines.amenity(AmenityAdvice(Amenity.BICYCLE_PARKING, parking, 110, "")))
     }
 
     @Test

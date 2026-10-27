@@ -230,12 +230,10 @@ class RideService : LifecycleService() {
         val s = session ?: return
         lastLocation = location
         // The device's clock, as maybeTalk() reads the state with (a fix's own time can differ).
-        motion.onFix(
-            System.currentTimeMillis(),
-            location.speed.takeIf { location.hasSpeed() },
-            location.accuracy.takeIf { location.hasAccuracy() },
-        )
-        s.onLocation(LatLon(location.latitude, location.longitude))
+        val here = LatLon(location.latitude, location.longitude)
+        val accuracy = location.accuracy.takeIf { location.hasAccuracy() }
+        motion.onFix(System.currentTimeMillis(), here, location.speed.takeIf { location.hasSpeed() }, accuracy)
+        s.onLocation(here, accuracy)
         if (s.route.size != _walked.value.size) _walked.value = s.route.toList()
         heading = Ahead.heading(location.bearing.takeIf { location.hasBearing() }, motion.speedMps, s.track)
         app.heading = heading

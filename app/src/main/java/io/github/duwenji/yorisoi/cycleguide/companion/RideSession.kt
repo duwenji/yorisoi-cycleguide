@@ -95,12 +95,16 @@ class RideSession(val startedAt: Long) {
     val deferred: List<DeferredTalk> get() = _deferred
     private val _deferred = mutableListOf<DeferredTalk>()
 
-    /** A location fix; small steps (GPS jitter while standing) don't add to the distance. */
-    fun onLocation(p: LatLon) {
+    /**
+     * A location fix, [accuracyM] null when unknown. Inaccurate fixes and steps smaller than
+     * [MIN_STEP_M] or the accuracy (GPS jitter while standing) don't add to the distance.
+     */
+    fun onLocation(p: LatLon, accuracyM: Float? = null) {
+        if (accuracyM != null && accuracyM > Motion.MAX_ACCURACY_M) return
         val last = _track.lastOrNull()
         if (last != null) {
             val step = RouteGeometry.distanceM(last, p)
-            if (step < MIN_STEP_M) return
+            if (step < maxOf(MIN_STEP_M, (accuracyM ?: 0f).toDouble())) return
             distanceM += step
         }
         _track.addLast(p)

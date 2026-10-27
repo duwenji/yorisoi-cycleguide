@@ -53,6 +53,15 @@ class AheadTest {
     }
 
     @Test
+    fun `the line is waited for until it can only just end before the spot`() {
+        // 300 m at 5 m/s: 50 s to the margin, less 15 s of talk.
+        assertEquals(35.0, Ahead.answerSec(300.0, 5f, 15)!!, 0.01)
+        // Started late: still the time to write it.
+        assertEquals(Ahead.COMPOSE_SEC, Ahead.answerSec(120.0, 5f, 15)!!, 0.01)
+        assertNull(Ahead.answerSec(300.0, 0f, 15))
+    }
+
+    @Test
     fun `a spot seen too late is kept for later`() {
         assertEquals(Timing.TOO_LATE, Ahead.timing(80.0, 15 / 3.6f, 15))
         assertEquals(Timing.NOW, Ahead.timing(80.0, 0f, 15))

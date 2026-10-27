@@ -15,7 +15,7 @@ okhttp = "4.12.0"
 tink = "1.23.0"
 junit = "4.13.2"
 # The yorisoi platform (github.com/duwenji/yorisoi-platform): one version for all modules.
-yorisoi = "2.17.0"
+yorisoi = "2.18.0"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }

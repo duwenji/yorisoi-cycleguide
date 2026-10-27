@@ -51,6 +51,7 @@ import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.RouteGeometry
 import io.github.duwenji.yorisoi.kit.geo.relativeDirection
 import io.github.duwenji.yorisoi.kit.geo.weather.Weather
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -334,9 +335,13 @@ class RideService : LifecycleService() {
         val line: Line? = when (decision) {
             is RideDecision.Spot -> {
                 // A channel's cue on this spot says its own line (F-32); otherwise the AI's narration.
-                val cue = app.cues.spot(station, decision.poi, decision.distanceM, s.shownCues, now)
-                val cued = cue?.let { cueLine(s, it, station, RideContext(riding = true, decision.maxChars), now) }
-                val written = cued ?: app.narrator.spot(decision.poi, decision.distanceM, riding = true, station, decision.maxChars)
+                // Not waited for past the time it can still be said before the spot; the fixed line then.
+                val wait = Ahead.answerSec(decision.distanceM.toDouble(), motion.speedMps, decision.maxChars / SpeechBudget.CHARS_PER_SEC)
+                val written = within(wait, decision.poi.name) {
+                    val cue = app.cues.spot(station, decision.poi, decision.distanceM, s.shownCues, now)
+                    val cued = cue?.let { cueLine(s, it, station, RideContext(riding = true, decision.maxChars), now) }
+                    cued ?: app.narrator.spot(decision.poi, decision.distanceM, riding = true, station, decision.maxChars)
+                }
                 // The rider may have stopped while it was written: the length allowed now counts.
                 if (written != null && !SpeechBudget.fits(written.text, maxCharsNow())) {
                     s.keepLonger(decision.poi, written.text, written.credit, now)
@@ -374,6 +379,18 @@ class RideService : LifecycleService() {
         }
         line?.let { say(it, motion.state(System.currentTimeMillis())) }
         s.carriedOut(decision, now)
+    }
+
+    /**
+     * [write]'s line if it comes within [sec] (always when null); else null, and the line, when it
+     * comes, is dropped. The call goes on meanwhile: the AI's client can't be stopped halfway.
+     */
+    private suspend fun within(sec: Double?, about: String, write: suspend () -> Line?): Line? {
+        if (sec == null) return write()
+        val line = lifecycleScope.async { write() }
+        val written = withTimeoutOrNull((sec * 1000).toLong()) { line.await() }
+        if (written == null && !line.isCompleted) app.diagnostics.event("ai_late", "about" to about, "waitedSec" to sec)
+        return written
     }
 
     private suspend fun talk(s: RideSession, event: Prompts.Event, vars: Map<String, Any?>, station: Station, maxChars: Int): Line? {

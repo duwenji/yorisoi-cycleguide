@@ -74,4 +74,14 @@ object Ahead {
             else -> Timing.WAIT
         }
     }
+
+    /**
+     * How long to wait for the line about a spot [distanceM] ahead, so that a line of [talkSec]
+     * still ends [MARGIN_M] before it; at least [COMPOSE_SEC]. Null when stopped or the speed is
+     * unknown: no spot comes nearer.
+     */
+    fun answerSec(distanceM: Double, speedMps: Float?, talkSec: Int): Double? {
+        if (speedMps == null || speedMps < Motion.STOP_MPS) return null
+        return maxOf(COMPOSE_SEC, (distanceM - MARGIN_M) / speedMps - talkSec)
+    }
 }

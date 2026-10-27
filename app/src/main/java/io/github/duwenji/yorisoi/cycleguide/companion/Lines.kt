@@ -35,8 +35,11 @@ object Lines {
     fun amenity(a: AmenityAdvice): String {
         val what = a.facility.kind.label + (a.facility.name?.let { "「$it」" } ?: "")
         val metres = maxOf(50, (a.distanceM + 25) / 50 * 50)
-        return if (a.amenity == Amenity.BICYCLE_PARKING) "近くの${a.side}${metres}メートルに、${what}があります。"
-        else "${metres}メートル先に、${what}があります。"
+        return if (a.amenity == Amenity.BICYCLE_PARKING) {
+            // No side when the way the rider goes isn't known.
+            if (a.side.isEmpty()) "${metres}メートルほどのところに、${what}があります。"
+            else "近くの${a.side}${metres}メートルに、${what}があります。"
+        } else "${metres}メートル先に、${what}があります。"
     }
 
     /** Read out when earphones connect, once a ride (requirements S-3). */

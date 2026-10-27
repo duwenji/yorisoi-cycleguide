@@ -28,6 +28,11 @@ class RideSessionTest {
         s.onLocation(RouteGeometry.destination(here, 0.0, 100.0))
         assertEquals(100.0, s.distanceM, 0.5)
         assertEquals(2, s.track.size)
+        // Inaccurate fixes, and steps within the accuracy, are jitter too.
+        val there = RouteGeometry.destination(here, 0.0, 100.0)
+        s.onLocation(RouteGeometry.destination(there, 90.0, 500.0), 80f)
+        s.onLocation(RouteGeometry.destination(there, 90.0, 8.0), 15f)
+        assertEquals(100.0, s.distanceM, 0.5)
     }
 
     @Test

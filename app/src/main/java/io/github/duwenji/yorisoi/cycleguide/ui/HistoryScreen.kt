@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
 import io.github.duwenji.yorisoi.cycleguide.history.RideSummary
 import io.github.duwenji.yorisoi.kit.geo.LatLon
+import io.github.duwenji.yorisoi.kit.geo.map.NewWayFromTrip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -99,8 +100,8 @@ private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, saveWay: (S
             }
             if (makingWay) {
                 item {
-                    NewWayFromRide(
-                        r,
+                    NewWayFromTrip(
+                        r.route,
                         onSave = { name, points ->
                             saveWay(name, points, r.endedAt)
                             makingWay = false

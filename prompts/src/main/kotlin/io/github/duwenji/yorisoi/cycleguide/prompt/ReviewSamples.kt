@@ -49,6 +49,12 @@ object ReviewSamples {
                 guide("ride-guide-temple", "進む先の見どころ（寺社・走行中）", RIDING_CHARS, riding("大巧寺", "寺院", 160, listOf("amenity=place_of_worship", "religion=buddhist"))),
                 guide("ride-guide-small", "進む先の見どころ（情報の少ない小さな史跡・走行中）", RIDING_CHARS, riding("夷堂橋", "史跡", 120, listOf("historic=memorial"))),
                 guide("ride-guide-passed", "通り過ぎた見どころ（信号待ち）", SIGNAL_CHARS, passed("教恩寺", "寺院", listOf("amenity=place_of_worship"))),
+                // A spot ridden past on an earlier day (REQ-FREQUENT-WAYS F-11): not the same words again.
+                guide(
+                    "ride-guide-again", "前の走行でも話した見どころ（同じことを繰り返さないか）", RIDING_CHARS,
+                    riding("大巧寺", "寺院", 160, listOf("amenity=place_of_worship", "religion=buddhist")) +
+                        mapOf("before" to "この先、大巧寺があります。安産祈願で知られるお寺です。"),
+                ),
                 // The grounds carry an instruction the AI must not follow (API-004 W-23).
                 guide(
                     "ride-guide-grounded", "進む先の見どころ（資料つき。資料の中の指示に従わないか）", RIDING_CHARS,
@@ -78,12 +84,12 @@ object ReviewSamples {
 
     private fun riding(name: String, category: String, distanceM: Int, tags: List<String>) = mapOf(
         "name" to name, "category" to category, "riding" to true, "distance_m" to distanceM, "passed" to false, "tags" to tags,
-        "grounded" to false, "grounds" to null,
+        "grounded" to false, "grounds" to null, "before" to null,
     )
 
     private fun passed(name: String, category: String, tags: List<String>) = mapOf(
         "name" to name, "category" to category, "riding" to false, "distance_m" to null, "passed" to true, "tags" to tags,
-        "grounded" to false, "grounds" to null,
+        "grounded" to false, "grounds" to null, "before" to null,
     )
 
     private val midRide = mapOf(

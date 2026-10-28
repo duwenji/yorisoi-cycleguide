@@ -20,8 +20,15 @@ import io.github.duwenji.yorisoi.kit.geo.weather.WeatherChangeKind
  *
  * @param alreadyThisRide talked about (or kept for later) on this ride already
  * @param cued a channel's cue names it, by its id or name (F-32)
+ * @param talkedRecently talked about on an earlier ride less than a day ago (REQ-FREQUENT-WAYS F-10)
  */
-data class AheadSpot(val poi: Poi, val distanceM: Double, val alreadyThisRide: Boolean = false, val cued: Boolean = false)
+data class AheadSpot(
+    val poi: Poi,
+    val distanceM: Double,
+    val alreadyThisRide: Boolean = false,
+    val cued: Boolean = false,
+    val talkedRecently: Boolean = false,
+)
 
 /** A channel's point cue the rider is inside (F-32), its place named after the channel. */
 data class PointCue(val fire: CueFire, val name: String, val lat: Double, val lon: Double)
@@ -147,9 +154,13 @@ object RideDecider {
         Rule("spot", setOf(RideGate.NOT_QUIET, RideGate.SPOT_GAP, RideGate.NOT_SWITCHED)) spot@{ s ->
             val speed = s.speedMps
             if (s.state != MotionState.MOVING || speed == null || TalkEventKind.SPOT !in s.events) return@spot null
-            // A spot a cue names is the channel's own choice: neither the style's scale nor its skipped kinds hold it back.
+            // A spot a cue names is the channel's own choice: neither the style's scale, its skipped kinds
+            // nor a talk on an earlier ride hold it back.
             val spot = s.ahead
-                .filter { !it.alreadyThisRide && (it.cued || (it.poi.category !in s.skippedCategories && s.values.style.spotScale.accepts(it.poi))) }
+                .filter {
+                    !it.alreadyThisRide &&
+                        (it.cued || (!it.talkedRecently && it.poi.category !in s.skippedCategories && s.values.style.spotScale.accepts(it.poi)))
+                }
                 .filter { it.distanceM <= s.values[StyleItem.AHEAD_M] }
                 .minWithOrNull(compareBy<AheadSpot> { it.distanceM }.thenBy { !it.cued }) ?: return@spot null
             when (Ahead.timing(spot.distanceM, speed, SpeechBudget.seconds(s.values, s.state))) {

@@ -84,6 +84,8 @@ dependencies {
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.service)
+    // Searching ahead along the frequent ways, on Wi-Fi and between rides (REQ-FREQUENT-WAYS D-9).
+    implementation(libs.androidx.work.runtime)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.play.services.location)
     // Only to name the app in the map's tile requests; the map itself is kit-geo's.

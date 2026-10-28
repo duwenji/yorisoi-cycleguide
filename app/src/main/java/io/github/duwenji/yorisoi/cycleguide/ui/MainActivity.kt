@@ -16,6 +16,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.duwenji.yorisoi.cycleguide.history.PastTalks
+import io.github.duwenji.yorisoi.cycleguide.ways.WaySections
 import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
 import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
@@ -46,6 +48,8 @@ class MainActivity : ComponentActivity() {
                 var showSettings by rememberSaveable { mutableStateOf(false) }
                 var showHistory by rememberSaveable { mutableStateOf(false) }
                 var showChannels by rememberSaveable { mutableStateOf(false) }
+                var showWays by rememberSaveable { mutableStateOf(false) }
+                val ways by app.ways.ways.collectAsStateWithLifecycle()
                 val stations by app.stations.list.collectAsStateWithLifecycle()
                 when {
                     // Nothing to read while moving (requirements S-1).
@@ -55,18 +59,31 @@ class MainActivity : ComponentActivity() {
                         BackHandler { showChannels = false }
                         ChannelsScreen(app, onClose = { showChannels = false })
                     }
+                    // Not during a ride (REQ-FREQUENT-WAYS F-18).
+                    showWays && state == null -> {
+                        BackHandler { showWays = false }
+                        WaysScreen(
+                            ways,
+                            WayActions(
+                                rename = app.ways::rename, save = app.ways::save, delete = app.ways::delete,
+                                talksOn = { way -> WaySections.talksOn(way, app.history.since(System.currentTimeMillis() - PastTalks.WINDOW_MS)) },
+                            ),
+                            onClose = { showWays = false },
+                        )
+                    }
                     showSettings -> {
                         BackHandler { showSettings = false }
                         SettingsScreen(
                             settings, onChange = app.settings::update, onClose = { showSettings = false }, exportRides = ::exportRides,
-                            hasHistory = rides.isNotEmpty(), clearHistory = app.history::clear,
+                            hasHistory = rides.isNotEmpty(), clearHistory = app::clearHistory,
                             stations = stations, current = station, riding = state != null, onOpenChannels = { showChannels = true },
+                            onOpenWays = { showWays = true }.takeIf { state == null },
                         )
                     }
                     // Not during a ride: the history is for afterwards (S-2).
                     showHistory && state == null -> {
                         BackHandler { showHistory = false }
-                        HistoryScreen(rides, app.history::ride, onClose = { showHistory = false })
+                        HistoryScreen(rides, app.history::ride, saveWay = { name, points, at -> app.ways.add(name, points, at) }, onClose = { showHistory = false })
                     }
                     else -> MainScreen(
                         riding = state != null,

@@ -7,6 +7,7 @@ coreKtx = "1.16.0"
 activityCompose = "1.10.1"
 fragment = "1.8.8"
 lifecycle = "2.9.1"
+work = "2.10.1"
 playServicesLocation = "21.3.0"
 osmdroid = "6.1.20"
 coroutines = "1.10.2"
@@ -15,7 +16,7 @@ okhttp = "4.12.0"
 tink = "1.23.0"
 junit = "4.13.2"
 # The yorisoi platform (github.com/duwenji/yorisoi-platform): one version for all modules.
-yorisoi = "2.19.0"
+yorisoi = "2.20.0"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -29,6 +30,7 @@ androidx-fragment = { module = "androidx.fragment:fragment", version.ref = "frag
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-lifecycle-service = { module = "androidx.lifecycle:lifecycle-service", version.ref = "lifecycle" }
+androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
 osmdroid-android = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroid" }

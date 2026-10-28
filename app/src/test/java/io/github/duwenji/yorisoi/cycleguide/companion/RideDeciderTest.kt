@@ -76,6 +76,16 @@ class RideDeciderTest {
     }
 
     @Test
+    fun `a spot talked about on a ride less than a day ago is passed over, unless a cue names it (REQ-FREQUENT-WAYS F-10)`() {
+        assertEquals(RideDecision.Nothing, decide(calm.copy(ahead = listOf(AheadSpot(shrine, 160.0, talkedRecently = true)))))
+        val temple = poi("円覚寺", "寺院")
+        val next = decide(calm.copy(ahead = listOf(AheadSpot(shrine, 160.0, talkedRecently = true), AheadSpot(temple, 170.0))))
+        assertEquals(RideDecision.Spot(temple, 170, 15 * SpeechBudget.CHARS_PER_SEC), next)
+        val cued = decide(calm.copy(ahead = listOf(AheadSpot(shrine, 160.0, cued = true, talkedRecently = true))))
+        assertEquals(RideDecision.Spot(shrine, 160, 15 * SpeechBudget.CHARS_PER_SEC), cued)
+    }
+
+    @Test
     fun `a spot a cue names is picked though the style or the channel would pass it over (F-32)`() {
         val chapel = poi("小さな祠", category = "祠")
         // Too small for pottering's scale and a kind the channel skips: passed over...

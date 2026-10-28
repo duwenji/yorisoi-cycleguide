@@ -59,6 +59,14 @@ class NarratorTest {
     }
 
     @Test
+    fun `what was said on an earlier ride goes in the request, not to be said again (REQ-FREQUENT-WAYS F-11)`() {
+        val user = prompts.render(Prompts.Guide.USER, Narrator.spotVars(shrine, 160, riding = true, before = "鎌倉の<八幡>さまです。"))
+        assertTrue(user, user.contains("# 前の走行で話したこと"))
+        assertTrue(user, user.contains("鎌倉の＜八幡＞さまです。"))
+        assertFalse(prompts.render(Prompts.Guide.USER, Narrator.spotVars(shrine, 160, riding = true)).contains("前の走行で話したこと"))
+    }
+
+    @Test
     fun `the fixed line stands in without an AI, on a failure, or for contact details`() = runBlocking {
         reply = { throw AiUnavailableException("No AI service is set up") }
         assertNull(narrator.spot(shrine, 160, riding = true, standard, 90))

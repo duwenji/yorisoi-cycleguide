@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -64,6 +65,8 @@ fun SettingsScreen(
     /** A ride is on: the channel stays as it is until the ride ends. */
     riding: Boolean,
     onOpenChannels: () -> Unit,
+    /** Opens the frequent ways; null during a ride (S-2). */
+    onOpenWays: (() -> Unit)?,
 ) {
     val values = settings.values
     Scaffold { padding ->
@@ -120,6 +123,7 @@ fun SettingsScreen(
                 )
             }
             item { AiSettings(settings, onChange) }
+            item { WaysSection(settings, onChange, onOpenWays) }
             if (hasHistory) item { HistorySection(clearHistory) }
             item { AboutSection(settings, onChange, exportRides) }
         }
@@ -261,13 +265,30 @@ private fun AboutSection(settings: RideSettings, onChange: ((RideSettings) -> Ri
     }
 }
 
+/** The frequent ways (REQ-FREQUENT-WAYS F-14, F-17). */
+@Composable
+private fun WaysSection(settings: RideSettings, onChange: ((RideSettings) -> RideSettings) -> Unit, onOpen: (() -> Unit)?) {
+    Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("よく通る道", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "何度も走った道を、この端末の中でよく通る道として覚えます。Wi-Fi のときに、その道の見どころを前もって調べておきます。前に話した見どころは、1 日たつまで話さず、そのあとは別の話をします。",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("よく通る道を自動で見つける", modifier = Modifier.weight(1f))
+            Switch(checked = settings.findWays, onCheckedChange = { on -> onChange { it.copy(findWays = on) } })
+        }
+        if (onOpen != null) OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) { Text("よく通る道を見る") }
+    }
+}
+
 /** The rides finished, kept on this device (requirements F-28, F-31). */
 @Composable
 private fun HistorySection(clear: () -> Unit) {
     Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("走行の履歴", style = MaterialTheme.typography.titleMedium)
         Text(
-            "走った道・話した見どころとその話・振り返りを、この端末にだけ最新 ${RideHistory.MAX_RIDES} 件まで残します。いちばん新しい走行は、走っていないときの画面に出します。",
+            "走った道・話した見どころとその話・振り返りを、この端末にだけ最新 ${RideHistory.MAX_RIDES} 件まで残します。いちばん新しい走行は、走っていないときの画面に出します。履歴を消すと、自動で見つけたよく通る道のうち、保存していないものも消えます。",
             style = MaterialTheme.typography.bodySmall,
         )
         OutlinedButton(onClick = clear, modifier = Modifier.fillMaxWidth()) { Text("履歴を消す") }

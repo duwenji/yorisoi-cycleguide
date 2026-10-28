@@ -110,6 +110,8 @@ class RideService : LifecycleService() {
             session = RideSession(now).also {
                 it.pendingGreeting = app.stations.current.value.manifest.greeting
                 it.useChannel(app.stations.current.value.key)
+                // Read while the ride starts; until then, nothing was said before.
+                lifecycleScope.launch { it.past = app.pastTalks(now) }
             }
             if (app.settings.settings.value.developerMode) startDiagnostics(now)
             // The lists, if a day has passed: at the start, never during the ride (API-002 取得の時期).
@@ -127,7 +129,7 @@ class RideService : LifecycleService() {
         session?.let { s ->
             app.diagnostics.finish(s.startedAt)
             // Ended some other way than by the rider (the system stopped it): kept without a look back.
-            if (!finishing) RideRecord.of(s, System.currentTimeMillis())?.let(app.history::add)
+            if (!finishing) RideRecord.of(s, System.currentTimeMillis())?.let(app::keepRide)
         }
         fused.removeLocationUpdates(callback)
         earphones.stop()
@@ -159,7 +161,7 @@ class RideService : LifecycleService() {
             val recap = withTimeoutOrNull(RECAP_TIMEOUT_MS) { talking.withLock { recap(s, endedAt) } }
             val line = recap ?: Line(Lines.finish(s.distanceM))
             say(line, MotionState.REST)
-            RideRecord.of(s, endedAt, recap?.text)?.let(app.history::add)
+            RideRecord.of(s, endedAt, recap?.text)?.let(app::keepRide)
             stopSelf()
         }
     }
@@ -290,7 +292,12 @@ class RideService : LifecycleService() {
             val way = heading
             val ahead = if (here == null || way == null) emptyList() else app.spots.spots.value
                 .filter { Ahead.isAhead(here, way, LatLon(it.lat, it.lon), values[StyleItem.AHEAD_M].toDouble()) }
-                .map { AheadSpot(it, RouteGeometry.distanceM(here, LatLon(it.lat, it.lon)), s.alreadyTalked(it), app.cues.names(station, it, s.shownCues, now)) }
+                .map {
+                    AheadSpot(
+                        it, RouteGeometry.distanceM(here, LatLon(it.lat, it.lon)), s.alreadyTalked(it), app.cues.names(station, it, s.shownCues, now),
+                        talkedRecently = s.past.recent(it, now),
+                    )
+                }
             val facilities = if (here == null) emptyList() else app.spots.facilities.value.map { f ->
                 val at = LatLon(f.lat, f.lon)
                 NearFacility(
@@ -344,14 +351,14 @@ class RideService : LifecycleService() {
                 val written = within(wait, decision.poi.name) {
                     val cue = app.cues.spot(station, decision.poi, decision.distanceM, s.shownCues, now)
                     val cued = cue?.let { cueLine(s, it, station, RideContext(riding = true, decision.maxChars), now) }
-                    cued ?: app.narrator.spot(decision.poi, decision.distanceM, riding = true, station, decision.maxChars)
+                    cued ?: app.narrator.spot(decision.poi, decision.distanceM, riding = true, station, decision.maxChars, before = s.past.before(decision.poi, now))
                 }
                 // The rider may have stopped while it was written: the length allowed now counts.
                 if (written != null && !SpeechBudget.fits(written.text, maxCharsNow())) {
                     s.keepLonger(decision.poi, written.text, written.credit, now)
                     return
                 }
-                (written ?: fixed)?.also { s.said(decision.poi, it.text, now) }
+                (written ?: again(s, decision.poi, now) ?: fixed)?.also { s.said(decision.poi, it.text, now) }
             }
             is RideDecision.Deferred -> {
                 val kept = decision.talk
@@ -361,11 +368,11 @@ class RideService : LifecycleService() {
                         // A spot a cue names, passed too late: its own line now (F-32).
                         val cue = app.cues.spot(station, kept.poi, null, s.shownCues, now)
                         cue?.let { cueLine(s, it, station, RideContext(riding = false, decision.maxChars), now) }
-                            ?: app.narrator.spot(kept.poi, null, riding = false, station, decision.maxChars)
+                            ?: app.narrator.spot(kept.poi, null, riding = false, station, decision.maxChars, before = s.past.before(kept.poi, now))
                     }
                     else -> null
                 }
-                (written?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) } ?: fixed)?.also { line -> kept.poi?.let { s.said(it, line.text, now) } }
+                (written?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) } ?: kept.poi?.let { again(s, it, now, passed = true) } ?: fixed)?.also { line -> kept.poi?.let { s.said(it, line.text, now) } }
             }
             is RideDecision.Point -> {
                 val cue = decision.cue
@@ -384,6 +391,10 @@ class RideService : LifecycleService() {
         line?.let { say(it, motion.state(System.currentTimeMillis())) }
         s.carriedOut(decision, now)
     }
+
+    /** The fixed line for a spot talked about on an earlier ride (REQ-FREQUENT-WAYS F-11); null for a new one. */
+    private fun again(s: RideSession, poi: Poi, now: Long, passed: Boolean = false): Line? =
+        s.past.before(poi, now)?.let { Line(Lines.again(poi, passed)) }
 
     /**
      * [write]'s line if it comes within [sec] (always when null); else null, and the line, when it

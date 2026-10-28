@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
 import io.github.duwenji.yorisoi.cycleguide.history.RideSummary
+import io.github.duwenji.yorisoi.kit.geo.LatLon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -37,13 +39,14 @@ import java.util.Locale
  * what was said at each spot. Opened only outside a ride (S-2).
  *
  * @param ride reads one ride's file (`RideHistory.ride`)
+ * @param saveWay makes a frequent way of part of a ride: its name, its points, when the ride ended (REQ-FREQUENT-WAYS F-16)
  */
 @Composable
-fun HistoryScreen(rides: List<RideSummary>, ride: (Long) -> RideRecord?, onClose: () -> Unit) {
+fun HistoryScreen(rides: List<RideSummary>, ride: (Long) -> RideRecord?, saveWay: (String, List<LatLon>, Long) -> Unit, onClose: () -> Unit) {
     var open by rememberSaveable { mutableStateOf<Long?>(null) }
     open?.let { startedAt ->
         BackHandler { open = null }
-        RideDetail(startedAt, ride, onClose = { open = null })
+        RideDetail(startedAt, ride, saveWay, onClose = { open = null })
         return
     }
     Scaffold { padding ->
@@ -66,8 +69,10 @@ fun HistoryScreen(rides: List<RideSummary>, ride: (Long) -> RideRecord?, onClose
 }
 
 @Composable
-private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, onClose: () -> Unit) {
+private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, saveWay: (String, List<LatLon>, Long) -> Unit, onClose: () -> Unit) {
     val ride by produceState<RideRecord?>(null, startedAt) { value = withContext(Dispatchers.IO) { read(startedAt) } }
+    var makingWay by rememberSaveable { mutableStateOf(false) }
+    var madeWay by rememberSaveable { mutableStateOf<String?>(null) }
     Scaffold { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp),
@@ -82,7 +87,35 @@ private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, onClose: ()
             val r = ride ?: return@LazyColumn
             item { Text(r.summary.text(), style = MaterialTheme.typography.bodyLarge) }
             r.recap?.let { item { Text(it, style = MaterialTheme.typography.bodyMedium) } }
-            item { PastRideMap(r, Modifier.fillMaxWidth().height(320.dp)) }
+            // The frequent ways gone along, and those this ride made (REQ-FREQUENT-WAYS F-12, D-12).
+            r.ways.filter { it.new }.forEach { way -> item { Text("よく通る道にしました: ${way.name}", style = MaterialTheme.typography.bodyMedium) } }
+            r.ways.filter { !it.new }.takeIf { it.isNotEmpty() }?.let { ways ->
+                item {
+                    Text(
+                        "通ったよく通る道: " + ways.joinToString("、") { "${it.name}（${it.passes} 回目）" },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+            if (makingWay) {
+                item {
+                    NewWayFromRide(
+                        r,
+                        onSave = { name, points ->
+                            saveWay(name, points, r.endedAt)
+                            makingWay = false
+                            madeWay = name
+                        },
+                        onCancel = { makingWay = false },
+                    )
+                }
+            } else {
+                item { PastRideMap(r, Modifier.fillMaxWidth().height(320.dp)) }
+                item {
+                    madeWay?.let { Text("「$it」をよく通る道にしました", style = MaterialTheme.typography.bodySmall) }
+                    OutlinedButton(onClick = { makingWay = true }, modifier = Modifier.fillMaxWidth()) { Text("この走行からよく通る道を作る") }
+                }
+            }
             if (r.talks.isNotEmpty()) item { Text("話した見どころ", style = MaterialTheme.typography.titleMedium) }
             items(r.talks) { talk ->
                 Column(Modifier.padding(vertical = 4.dp)) {

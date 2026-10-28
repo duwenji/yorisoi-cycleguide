@@ -246,18 +246,22 @@ class RideService : LifecycleService() {
             "medianSpeed" to motion.speedMps, "heading" to heading, "km" to s.distanceM / 1000,
         )
         lifecycleScope.launch {
-            val updates = app.spots.updates
             try {
-                app.spots.onLocation(location)
-                if (app.spots.updates != updates) {
+                if (app.spots.onLocation(location)) {
                     app.diagnostics.event(
                         "spots", "source" to app.spots.source?.name?.lowercase(),
                         "spots" to app.spots.spots.value.size, "signals" to app.spots.trafficSignals.value.size,
+                        "centerLat" to app.spots.searchedAt?.lat, "centerLon" to app.spots.searchedAt?.lon,
                     )
                 }
             } catch (e: IOException) {
                 Log.w(TAG, "Spot search failed", e)
-                app.diagnostics.event("spot_search_failed", "error" to e.toString())
+                // What is shown instead: the nearest kept answer, or the last one, now behind.
+                app.diagnostics.event(
+                    "spot_search_failed", "error" to e.toString(),
+                    "centerLat" to app.spots.searchedAt?.lat, "centerLon" to app.spots.searchedAt?.lon,
+                    "source" to app.spots.source?.name?.lowercase(), "spots" to app.spots.spots.value.size,
+                )
             }
             if (weatherFetchedAt == 0L) refreshWeather(location)
             maybeTalk()

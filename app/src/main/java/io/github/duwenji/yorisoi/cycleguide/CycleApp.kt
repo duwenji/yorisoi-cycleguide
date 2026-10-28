@@ -139,6 +139,8 @@ class CycleApp : Application() {
             },
             signals = true,
             facilityKinds = Amenity.SEARCHED,
+            // A rider soon leaves the kept answers behind: ask again within a minute (architecture.md「前方」).
+            retryDelaysMs = SPOT_RETRY_DELAYS_MS,
         )
         speaker = Speaker(this)
         getSystemService(NotificationManager::class.java).apply {
@@ -148,5 +150,8 @@ class CycleApp : Application() {
 
     companion object {
         const val CHANNEL_RIDE = "ride"
+
+        /** How long to wait before asking Overpass again, after one failed search, two, and more. */
+        val SPOT_RETRY_DELAYS_MS = longArrayOf(20_000, 30_000, 60_000)
     }
 }

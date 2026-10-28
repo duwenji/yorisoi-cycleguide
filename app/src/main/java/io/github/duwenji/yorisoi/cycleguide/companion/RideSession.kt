@@ -1,5 +1,6 @@
 package io.github.duwenji.yorisoi.cycleguide.companion
 
+import io.github.duwenji.yorisoi.cycleguide.history.PastTalks
 import io.github.duwenji.yorisoi.cycleguide.history.SpotTalk
 import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.kit.geo.LatLon
@@ -118,6 +119,10 @@ class RideSession(val startedAt: Long) {
     }
 
     fun alreadyTalked(poi: Poi): Boolean = poi.id in talkedSpots
+
+    /** What was said about the spots on earlier rides (REQ-FREQUENT-WAYS F-9); read as the ride starts. */
+    @Volatile
+    var past: PastTalks = PastTalks.NONE
 
     /** [text] was said about [poi] at [at]. */
     fun said(poi: Poi, text: String, at: Long) {

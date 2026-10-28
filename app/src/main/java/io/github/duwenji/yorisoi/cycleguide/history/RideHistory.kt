@@ -16,6 +16,9 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
 
+/** A frequent way gone along on a ride, and how many times that made (REQ-FREQUENT-WAYS F-12); [new] when the ride made it one. */
+data class RideWay(val id: String, val name: String, val passes: Int, val new: Boolean)
+
 /** What the companion said about a spot, and when (requirements F-28). */
 data class SpotTalk(val poiId: String, val name: String, val at: Long, val text: String)
 
@@ -34,6 +37,8 @@ data class RideRecord(
     val channels: List<String> = emptyList(),
     /** The look back said at the end; null when there was none. */
     val recap: String? = null,
+    /** The frequent ways gone along (REQ-FREQUENT-WAYS F-12). */
+    val ways: List<RideWay> = emptyList(),
 ) {
     val summary: RideSummary get() = RideSummary(startedAt, endedAt, distanceM, spots.size, recap)
 
@@ -121,6 +126,9 @@ class RideHistory(private val dir: File, legacy: File? = null, private val onErr
         }
     }
 
+    /** The rides ended at [from] or later, read from their files, newest first. */
+    fun since(from: Long): List<RideRecord> = _rides.value.filter { it.endedAt >= from }.mapNotNull { ride(it.startedAt) }
+
     fun clear() {
         dir.deleteRecursively()
         _rides.value = emptyList()
@@ -182,12 +190,16 @@ class RideHistory(private val dir: File, legacy: File? = null, private val onErr
             })
             .put("channels", JSONArray(ride.channels))
             .put("recap", ride.recap)
+            .put("ways", JSONArray().apply {
+                ride.ways.forEach { put(JSONObject().put("id", it.id).put("name", it.name).put("passes", it.passes).put("new", it.new)) }
+            })
 
         fun fromJson(json: JSONObject): RideRecord {
             val route = json.getJSONArray("route")
             val spots = json.getJSONArray("spots")
             val talks = json.optJSONArray("talks") ?: JSONArray()
             val channels = json.optJSONArray("channels") ?: JSONArray()
+            val ways = json.optJSONArray("ways") ?: JSONArray()
             return RideRecord(
                 startedAt = json.getLong("startedAt"),
                 endedAt = json.getLong("endedAt"),
@@ -203,6 +215,9 @@ class RideHistory(private val dir: File, legacy: File? = null, private val onErr
                 },
                 channels = List(channels.length()) { channels.getString(it) },
                 recap = json.optString("recap").ifEmpty { null },
+                ways = List(ways.length()) { i ->
+                    ways.getJSONObject(i).let { RideWay(it.getString("id"), it.getString("name"), it.getInt("passes"), it.getBoolean("new")) }
+                },
             )
         }
 

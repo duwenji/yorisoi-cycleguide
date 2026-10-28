@@ -31,12 +31,12 @@ class PromptsTest {
         }
         val riding = prompts.render(
             Prompts.Guide.USER,
-            mapOf("name" to "大巧寺", "category" to "寺院", "riding" to true, "distance_m" to 160, "passed" to false, "tags" to listOf("religion=buddhist"), "grounded" to false, "grounds" to null),
+            mapOf("name" to "大巧寺", "category" to "寺院", "riding" to true, "distance_m" to 160, "passed" to false, "tags" to listOf("religion=buddhist"), "grounded" to false, "grounds" to null, "before" to null),
         )
         assertTrue(riding.contains("約160m"))
         val passed = prompts.render(
             Prompts.Guide.USER,
-            mapOf("name" to "教恩寺", "category" to "寺院", "riding" to false, "distance_m" to null, "passed" to true, "tags" to emptyList<String>(), "grounded" to false, "grounds" to null),
+            mapOf("name" to "教恩寺", "category" to "寺院", "riding" to false, "distance_m" to null, "passed" to true, "tags" to emptyList<String>(), "grounded" to false, "grounds" to null, "before" to null),
         )
         assertTrue(passed.contains("さきほど通り過ぎた"))
         assertTrue(passed.contains("謝ったり残念がったりせず"))

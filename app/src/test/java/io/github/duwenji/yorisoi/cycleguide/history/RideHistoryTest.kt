@@ -48,6 +48,24 @@ class RideHistoryTest {
     }
 
     @Test
+    fun `a ride keeps the frequent ways gone along, and reads them back (REQ-FREQUENT-WAYS F-12)`() {
+        val ways = listOf(RideWay("w1", "川沿いの道", 5, new = false), RideWay("w2", "曳舟川親水公園のあたりの道", 3, new = true))
+        val ride = record().copy(ways = ways)
+        assertEquals(ways, RideHistory.fromJson(RideHistory.toJson(ride)).ways)
+        // Rides kept before there were ways.
+        assertTrue(RideHistory.fromJson(RideHistory.toJson(record()).apply { remove("ways") }).ways.isEmpty())
+    }
+
+    @Test
+    fun `the rides since a time are read from their files`() {
+        val history = RideHistory(tmp.newFolder("rides"))
+        history.add(record(start))
+        history.add(record(start + 86_400_000))
+        assertEquals(listOf(start + 86_400_000), history.since(start + 86_400_000).map { it.startedAt })
+        assertEquals(2, history.since(0).size)
+    }
+
+    @Test
     fun `a ride where the rider never moved isn't kept`() {
         assertNull(RideRecord.of(RideSession(start).apply { onLocation(here) }, start + 60_000))
     }

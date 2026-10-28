@@ -35,6 +35,8 @@ data class RideSettings(
     val dailyAiLimit: Int? = 100,
     /** The developer's detailed record of each ride (requirements F-29); turned on by tapping the version seven times. */
     val developerMode: Boolean = false,
+    /** Whether the ways ridden again and again become frequent ways by themselves (REQ-FREQUENT-WAYS F-17). */
+    val findWays: Boolean = true,
 ) {
     fun apiKey(p: Provider = provider): String = apiKeys[p].orEmpty()
     fun model(p: Provider = provider): String = models[p]?.takeIf { it.isNotBlank() } ?: p.defaultModel
@@ -98,6 +100,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
             customBaseUrl = prefs.getString(KEY_CUSTOM_BASE_URL, "").orEmpty(),
             dailyAiLimit = if (prefs.contains(KEY_DAILY_AI_LIMIT)) prefs.getInt(KEY_DAILY_AI_LIMIT, NO_LIMIT).takeIf { it != NO_LIMIT } else 100,
             developerMode = prefs.getBoolean(KEY_DEVELOPER_MODE, false),
+            findWays = prefs.getBoolean(KEY_FIND_WAYS, true),
         )
     }
 
@@ -110,6 +113,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
         putString(KEY_CUSTOM_BASE_URL, s.customBaseUrl.trim())
         putInt(KEY_DAILY_AI_LIMIT, s.dailyAiLimit ?: NO_LIMIT)
         putBoolean(KEY_DEVELOPER_MODE, s.developerMode)
+        putBoolean(KEY_FIND_WAYS, s.findWays)
         for (p in Provider.entries) {
             val key = s.apiKeys[p]?.trim().orEmpty()
             if (key.isEmpty()) remove(keyPref(p)) else putString(keyPref(p), KeyCipher.encrypt(key))
@@ -136,5 +140,6 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
         const val KEY_DAILY_AI_LIMIT = "daily_ai_limit"
         const val NO_LIMIT = -1
         const val KEY_DEVELOPER_MODE = "developer_mode"
+        const val KEY_FIND_WAYS = "find_ways"
     }
 }

@@ -1,6 +1,7 @@
 package io.github.duwenji.yorisoi.cycleguide.companion
 
 import io.github.duwenji.yorisoi.cycleguide.style.Amenity
+import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.weather.WeatherChangeKind
 
 /**
@@ -27,6 +28,13 @@ object Lines {
         is RideDecision.Milestone -> "ここまで順調です。"
         is RideDecision.Defer, is RideDecision.Point, RideDecision.Nothing -> null
     }
+
+    /**
+     * A spot talked about on an earlier ride, ahead or [passed] (REQ-FREQUENT-WAYS F-11): only
+     * that it's the same place again, since what it is was said before.
+     */
+    fun again(poi: Poi, passed: Boolean = false): String =
+        if (passed) "さきほどは、また${poi.name}の横を通りました。" else "また${poi.name}の横を通ります。"
 
     /**
      * A facility: ahead, how far (by 50m); parking while resting, which side. Its name when it has

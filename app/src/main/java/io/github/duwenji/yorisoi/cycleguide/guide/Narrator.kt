@@ -43,13 +43,24 @@ class Narrator(
     private val aiName: () -> String,
     private val onError: (Exception) -> Unit = {},
 ) {
-    /** [grounds]: the texts to take as fact, when a cue's request carries them; otherwise gathered here. */
-    suspend fun spot(poi: Poi, distanceM: Int?, riding: Boolean, station: Station, maxChars: Int, grounds: List<Ground>? = null): Line? {
+    /**
+     * [grounds]: the texts to take as fact, when a cue's request carries them; otherwise gathered here.
+     * [before]: what was said about the spot on an earlier ride, not to be said again (REQ-FREQUENT-WAYS F-11).
+     */
+    suspend fun spot(
+        poi: Poi,
+        distanceM: Int?,
+        riding: Boolean,
+        station: Station,
+        maxChars: Int,
+        grounds: List<Ground>? = null,
+        before: String? = null,
+    ): Line? {
         val facts = grounds ?: Grounding.collect(PoiSpot(poi, distanceM), station)
         return ask(
             Purpose.GUIDE,
             prompts.render(Prompts.Guide.SYSTEM, Prompts.guideSystemVars(station::slot, maxChars)),
-            prompts.render(Prompts.Guide.USER, spotVars(poi, distanceM, riding, facts)),
+            prompts.render(Prompts.Guide.USER, spotVars(poi, distanceM, riding, facts, before)),
             basedOn = facts.map { it.producerName }.distinct(),
         )
     }
@@ -84,8 +95,11 @@ class Narrator(
         fun credit(aiName: String, basedOn: List<String> = emptyList()): String =
             listOfNotNull("文: $aiName", basedOn.takeIf { it.isNotEmpty() }?.let { "${it.joinToString("・")}の資料をもとに作成" }).joinToString(" / ")
 
-        /** Values for `guide/user`: [distanceM] null for a spot already passed; [grounds] the texts the AI may take as fact. */
-        fun spotVars(poi: Poi, distanceM: Int?, riding: Boolean, grounds: List<Ground> = emptyList()): Map<String, Any?> = mapOf(
+        /**
+         * Values for `guide/user`: [distanceM] null for a spot already passed; [grounds] the texts the AI
+         * may take as fact; [before] what was said about it on an earlier ride.
+         */
+        fun spotVars(poi: Poi, distanceM: Int?, riding: Boolean, grounds: List<Ground> = emptyList(), before: String? = null): Map<String, Any?> = mapOf(
             "name" to poi.name,
             "category" to poi.category,
             "riding" to riding,
@@ -95,6 +109,7 @@ class Narrator(
             "grounded" to grounds.isNotEmpty(),
             // A ground can't close its own tag and pass for the prompt (API-004 I-15).
             "grounds" to grounds.map { mapOf("text" to fence(it.text), "source" to fence(it.producerName)) }.ifEmpty { null },
+            "before" to before?.let(::fence),
         )
 
         private fun fence(text: String) = text.replace('<', '＜').replace('>', '＞')

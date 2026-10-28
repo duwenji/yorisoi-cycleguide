@@ -148,12 +148,21 @@ flowchart LR
 | プロンプト・パックの公開（F-30） | `:prompts` を GitHub Packages に公開します（`io.github.duwenji.yorisoi.cycleguide:prompts`、版は `cycleguidePromptsVersion`）。審査の見本（`ReviewSamples`）を足し、`cycle` のチャンネルを、このアプリが送るのと同じプロンプトで組み立てます |
 | 審査の見本（X-6） | yorisoi-console の validator が、SanpoGuide のパックと CycleGuide のパックの両方を使い、チャンネルの `activities` で選びます（`walk` は SanpoGuide、`cycle` は CycleGuide。両方を含むときは両方の見本）。どちらも含まないときだけ `noRepresentativeApp` を返します（AC-23） |
 
+### よく通る道（platform REQ-FREQUENT-WAYS）
+
+| 部品 | 設計 |
+|---|---|
+| 見つけ方と残し方（F-3・F-4・F-12） | kit-geo の `FrequentWayFinder`（サイクルの値: 3 回・500 m・30 m 以内。`CycleApp.WAY_FINDER`）と `FrequentWayStore`（`files/ways.json`）を使います。走行を残すとき（`CycleApp.keepRide`）に、過去 60 日の走行（`RideHistory.since`）と比べて、通った道の回数を増やし、設定の「よく通る道を自動で見つける」が入なら新しい道を探します。名前は、その走行で出会った見どころから付けます（`FrequentWayFinder.nameFrom`）。通った道と何回目か、新しくできた道は `RideRecord.ways`（`RideWay`）に入れ、履歴の 1 件の画面に出します（D-12）。終了のボタンでもサービスが止められたときも同じです |
+| 前もっての取得（F-6〜F-8・D-9） | `ways` の `WayPrefetchWorker`（WorkManager）が、`SpotRepository.prefetch` で道に沿って取っておきます。1 日 1 回（起動時に `scheduleDaily`）と、走行を残したあとに 1 回（`afterRide`）。どちらも従量制でないネットワークで、電池が少なくないときだけ。走行中に動いたら何もしません。道は最後に通った日の新しい順に渡し、1 回 20 問い合わせまでです |
+| 前に話した見どころ（F-9〜F-11・D-11） | 走行の開始時に、過去 60 日の走行の話（`SpotTalk`）から `PastTalks` を作り、`RideSession.past` に入れます。同じ見どころかは、ID が同じか、同じ名前で 200 m 以内です（SanpoGuide の再訪と同じ）。前の話から 24 時間たっていない見どころは、ルール ④ で選びません（`AheadSpot.talkedRecently`。きっかけで指された見どころは除く）。24 時間より前に話した見どころは、AI の依頼に前の文を入れ（`guide/user` の `before`。「# 前の走行で話したこと」）、別の切り口で話させます。前の文にしか書いていない事実は使わせません（前の文は AI が作ったもので、作り話が混ざりうるため）。AI が使えないときの定型の文は「また〇〇の横を通ります。」（通り過ぎたあとは「さきほどは、また〇〇の横を通りました。」）です |
+| 画面（F-13〜F-18） | 設定の「よく通る道」に、自動で見つけるかの切り替えと、`WaysScreen` を開くボタン（走行中は出さない）を置きます。`WaysScreen` は一覧（名前・長さ・回数・最後に通った日・作り方）と 1 件の画面（地図・名前の変更・保存・削除・その道で話した見どころ）です。その道で話した見どころは、過去 60 日の走行で、道から 100 m 以内の見どころの最後の話です（`WaySections.talksOn`）。履歴の 1 件の画面の「この走行からよく通る道を作る」は、地図と範囲のつまみ（最初は両端の 200 m を除く）で始まりと終わりを選び、名前を付けて保存します（`NewWayFromRide`）。履歴を消すと、保存していない自動の道と消した道の記録も消します（`CycleApp.clearHistory`） |
+
 ### 段階 3 の部品
 
 | 部品 | 設計 |
 |---|---|
 | 自転車のルート（F-15） | kit-geo の `RouteClient` に自転車のプロファイル（FOSSGIS OSRM の自転車）を足す |
-| ルートに沿った取得（F-16） | ルートを 1 km ごとに区切り、Overpass の `around`（線に沿った範囲）で前もって取る |
+| ルートに沿った取得（F-16） | よく通る道と同じ kit-geo の `SpotRepository.prefetch` に、引いたルートを渡す |
 | ルートから外れた（F-17） | ルートの線からの距離が 50 m を超える状態が 10 秒続いたら、一度だけ話す |
 | 坂の予告（F-8） | 標高の取り先は U-2 で決める（候補: Open-Meteo の Elevation API。天気と同じサービス） |
 | メディアボタン（F-21） | `RideService` に `MediaSession` を持たせ、再生・一時停止で「止める」「もう一度」を切り替える |
@@ -169,12 +178,13 @@ flowchart LR
 
 | パッケージ | 役割 | 主なファイル |
 |---|---|---|
-| `ui` | 画面と ViewModel | MainScreen, RidingScreen, SettingsScreen, HistoryScreen |
+| `ui` | 画面と ViewModel | MainScreen, RidingScreen, SettingsScreen, HistoryScreen, WaysScreen |
 | `ride` | 常駐のサービス、イヤホンの注意、メディアボタン、前回の走行 | RideService, EarphoneWatch, EarphoneRule, MediaButtons, LastRide |
 | `companion` | 判定とその材料、定型の話（AI で文を作るまでの話と、安全の案内の文） | RideDecider, RideSession, Motion, Ahead, QuietZones, SpeechBudget, DeferredTalk, Lines |
 | `style` | 走り方と調整 | RideStyle, RideStyles, StyleValues |
 | `settings` | 設定の保存（走り方・走り方ごとの値の変更・チャンネル・イヤホンの注意を出したか） | SettingsRepository |
-| `history` | 走行の履歴（段階 2） | RideHistory |
+| `history` | 走行の履歴（段階 2）と、前の走行で話した見どころ | RideHistory, PastTalks |
+| `ways` | よく通る道の前もっての取得と、走行の一部・道で話した見どころ | WayPrefetchWorker, WaySections |
 | `diagnostics` | 開発者モードの記録の書き出し（記録そのものは platform kit-companion の `SessionRecorder`。走行の開始・位置・状態・判定・話・読み上げの時間・AI・天気・スポットの検索） | RideExport |
 | (root) | 共有部品の生成、通知チャンネルの登録 | CycleApp |
 

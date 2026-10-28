@@ -13,6 +13,15 @@ import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.cycleguide.prompt.BuiltInChannels
 import io.github.duwenji.yorisoi.cycleguide.history.RideHistory
+import io.github.duwenji.yorisoi.cycleguide.history.PastTalks
+import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
+import io.github.duwenji.yorisoi.cycleguide.history.RideWay
+import io.github.duwenji.yorisoi.cycleguide.ways.WayPrefetchWorker
+import io.github.duwenji.yorisoi.kit.geo.FrequentWayFinder
+import io.github.duwenji.yorisoi.kit.geo.FrequentWayStore
+import io.github.duwenji.yorisoi.kit.geo.Trip
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
 import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
@@ -76,6 +85,10 @@ class CycleApp : Application() {
     /** The rides finished (requirements F-28); the newest is shown on the start screen (F-31). */
     lateinit var history: RideHistory
         private set
+
+    /** The ways ridden again and again, and the ones the rider made (REQ-FREQUENT-WAYS). */
+    lateinit var ways: FrequentWayStore
+        private set
     val weather = WeatherClient()
 
     /** The way the rider goes, set by the ride service; the spot search looks ahead along it. */
@@ -93,6 +106,7 @@ class CycleApp : Application() {
             Log.w("SessionRecorder", "Could not write a diagnostics line", it)
         }
         history = RideHistory(File(filesDir, "rides"), legacy = File(filesDir, "last-ride.json")) { Log.w("RideHistory", "Could not keep a ride", it) }
+        ways = FrequentWayStore(File(filesDir, "ways.json"), WAY_FINDER) { Log.w("FrequentWayStore", "Could not keep the ways", it) }
         ai.onCall = { call ->
             Log.i("AiGateway", "${call.kind} ${call.model} ${call.ms}ms error=${call.error} violation=${call.violation}")
             diagnostics.event(
@@ -142,14 +156,43 @@ class CycleApp : Application() {
             // A rider soon leaves the kept answers behind: ask again within a minute (architecture.md「前方」).
             retryDelaysMs = SPOT_RETRY_DELAYS_MS,
         )
+        WayPrefetchWorker.scheduleDaily(this)
         speaker = Speaker(this)
         getSystemService(NotificationManager::class.java).apply {
             createNotificationChannel(NotificationChannel(CHANNEL_RIDE, "走行中", NotificationManager.IMPORTANCE_LOW))
         }
     }
 
+    /**
+     * Keeps a ride that ended: first the frequent ways it went along, or made (REQ-FREQUENT-WAYS
+     * F-3, F-4, F-12), among the rides of the last 60 days; then a search ahead along the ways,
+     * when the network allows (D-9). Off the main thread: the rides are read from their files.
+     */
+    fun keepRide(ride: RideRecord) = appScope.launch(Dispatchers.IO) {
+        val earlier = history.since(ride.endedAt - FrequentWayStore.WINDOW_MS).filter { it.startedAt != ride.startedAt }
+        val passed = ways.afterTrip(trip(ride), earlier.map(::trip), find = settings.settings.value.findWays) { points ->
+            FrequentWayFinder.nameFrom(points, ride.spots)
+        }
+        history.add(ride.copy(ways = passed.map { RideWay(it.way.id, it.way.name, it.passes, it.new) }))
+        WayPrefetchWorker.afterRide(this@CycleApp)
+    }
+
+    /** What was said on the rides of the last 60 days (REQ-FREQUENT-WAYS F-9). */
+    suspend fun pastTalks(now: Long): PastTalks = withContext(Dispatchers.IO) { PastTalks.of(history.since(now - PastTalks.WINDOW_MS)) }
+
+    /** The rides finished and the frequent ways found in them forgotten (F-2). */
+    fun clearHistory() {
+        history.clear()
+        ways.clearFound()
+    }
+
     companion object {
         const val CHANNEL_RIDE = "ride"
+
+        /** A rider's ways (REQ-FREQUENT-WAYS D-8). */
+        val WAY_FINDER = FrequentWayFinder(minLengthM = 500.0)
+
+        private fun trip(ride: RideRecord) = Trip(ride.endedAt, ride.route)
 
         /** How long to wait before asking Overpass again, after one failed search, two, and more. */
         val SPOT_RETRY_DELAYS_MS = longArrayOf(20_000, 30_000, 60_000)

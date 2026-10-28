@@ -16,7 +16,7 @@ class ReviewSamplesTest {
     fun `the standard channel has every scene the app sends`() {
         val samples = ReviewSamples.build(standard, standard, prompts)
         assertEquals(
-            listOf("ride-guide-temple", "ride-guide-small", "ride-guide-passed", "ride-guide-grounded", "ride-rest", "ride-milestone", "ride-finish"),
+            listOf("ride-guide-temple", "ride-guide-small", "ride-guide-passed", "ride-guide-again", "ride-guide-grounded", "ride-rest", "ride-milestone", "ride-finish"),
             samples.map { it.id },
         )
         samples.forEach { s ->
@@ -31,6 +31,8 @@ class ReviewSamplesTest {
         val byId = samples.associateBy { it.id }
         assertTrue(byId.getValue("ride-guide-temple").system.contains("${ReviewSamples.RIDING_CHARS}字以内"))
         assertTrue(byId.getValue("ride-guide-passed").user.contains("さきほど通り過ぎた"))
+        assertTrue(byId.getValue("ride-guide-again").user.contains("# 前の走行で話したこと"))
+        assertFalse(byId.getValue("ride-guide-temple").user.contains("# 前の走行で話したこと"))
         assertTrue(byId.getValue("ride-finish").system.contains("${ReviewSamples.REST_CHARS}字以内"))
     }
 

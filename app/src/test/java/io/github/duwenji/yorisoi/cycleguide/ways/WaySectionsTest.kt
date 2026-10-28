@@ -11,18 +11,10 @@ import io.github.duwenji.yorisoi.kit.geo.WayOrigin
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** A way made from part of a ride, and what was said along a way (REQ-FREQUENT-WAYS F-11, F-13, F-16). */
+/** What was said along a way, and the fixed line for a spot passed again (REQ-FREQUENT-WAYS F-11, F-13). */
 class WaySectionsTest {
     private val start = LatLon(35.70, 139.80)
     private val line = (0..20).map { RouteGeometry.destination(start, 90.0, it * 100.0) }
-
-    @Test
-    fun `a part of a ride is the points between two distances along it`() {
-        assertEquals(2000.0, WaySections.distances(line).last(), 1.0)
-        val part = WaySections.section(line, 150.0, 1850.0)
-        assertEquals(17, part.size)
-        assertEquals(line[2], part.first())
-    }
 
     @Test
     fun `the talks along a way are the spots near it, the last of each`() {

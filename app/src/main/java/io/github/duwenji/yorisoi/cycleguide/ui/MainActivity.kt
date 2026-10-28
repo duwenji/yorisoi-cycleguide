@@ -18,6 +18,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.duwenji.yorisoi.cycleguide.history.PastTalks
 import io.github.duwenji.yorisoi.cycleguide.ways.WaySections
+import io.github.duwenji.yorisoi.kit.geo.map.FrequentWaysScreen
+import io.github.duwenji.yorisoi.kit.geo.map.WayActions
+import io.github.duwenji.yorisoi.kit.geo.map.WayWords
 import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
 import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
@@ -62,12 +65,13 @@ class MainActivity : ComponentActivity() {
                     // Not during a ride (REQ-FREQUENT-WAYS F-18).
                     showWays && state == null -> {
                         BackHandler { showWays = false }
-                        WaysScreen(
+                        FrequentWaysScreen(
                             ways,
                             WayActions(
                                 rename = app.ways::rename, save = app.ways::save, delete = app.ways::delete,
                                 talksOn = { way -> WaySections.talksOn(way, app.history.since(System.currentTimeMillis() - PastTalks.WINDOW_MS)) },
                             ),
+                            WayWords.RIDE,
                             onClose = { showWays = false },
                         )
                     }

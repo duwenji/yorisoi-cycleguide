@@ -36,6 +36,7 @@ import io.github.duwenji.yorisoi.kit.geo.LatLon
 import io.github.duwenji.yorisoi.kit.geo.OverpassClient
 import io.github.duwenji.yorisoi.kit.geo.SpotCache
 import io.github.duwenji.yorisoi.kit.geo.SpotRepository
+import io.github.duwenji.yorisoi.kit.geo.SpotTiles
 import io.github.duwenji.yorisoi.kit.geo.weather.WeatherClient
 import io.github.duwenji.yorisoi.kit.llm.AiGateway
 import io.github.duwenji.yorisoi.kit.llm.AiUsage
@@ -155,6 +156,7 @@ class CycleApp : Application() {
             facilityKinds = Amenity.SEARCHED,
             // A rider soon leaves the kept answers behind: ask again within a minute (architecture.md「前方」).
             retryDelaysMs = SPOT_RETRY_DELAYS_MS,
+            tiles = SpotTiles(BuildConfig.SPOT_TILES_URL, "CycleGuide/${BuildConfig.VERSION_NAME}"),
         )
         WayPrefetchWorker.scheduleDaily(this)
         speaker = Speaker(this)

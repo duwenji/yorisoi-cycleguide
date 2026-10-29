@@ -29,6 +29,9 @@ android {
         // The Google Cloud project linked in Play Console for Play Integrity; 0 sends no token (the
         // development relay doesn't ask for one).
         buildConfigField("long", "PLAY_CLOUD_PROJECT_NUMBER", "0L")
+        // The operator's spot tiles (platform API-SPOT-TILES ST-1): every build uses the development
+        // ones until production's are deployed.
+        buildConfigField("String", "SPOT_TILES_URL", "\"https://ds73vvo5wv45e.cloudfront.net/\"")
     }
 
     signingConfigs {

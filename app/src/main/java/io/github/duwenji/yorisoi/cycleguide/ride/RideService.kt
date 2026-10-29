@@ -137,6 +137,7 @@ class RideService : LifecycleService() {
         session = null
         app.heading = null
         _state.value = null
+        _finishing.value = false
         _lastLine.value = null
         _walked.value = emptyList()
         _heading.value = null
@@ -158,6 +159,7 @@ class RideService : LifecycleService() {
         }
         if (finishing) return
         finishing = true
+        _finishing.value = true
         fused.removeLocationUpdates(callback)
         lifecycleScope.launch {
             val endedAt = System.currentTimeMillis()
@@ -540,6 +542,11 @@ class RideService : LifecycleService() {
 
         /** The rider's state while a ride goes on; null when there is no ride. */
         val state: StateFlow<MotionState?> = _state.asStateFlow()
+
+        private val _finishing = MutableStateFlow(false)
+
+        /** The rider has finished the ride and the look back is being written; the ride ends after it. */
+        val finishing: StateFlow<Boolean> = _finishing.asStateFlow()
 
         private val _lastLine = MutableStateFlow<Line?>(null)
 

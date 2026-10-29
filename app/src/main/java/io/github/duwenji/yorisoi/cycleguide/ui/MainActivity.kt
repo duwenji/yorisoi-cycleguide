@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val state by RideService.state.collectAsStateWithLifecycle()
+                val finishing by RideService.finishing.collectAsStateWithLifecycle()
                 val settings by app.settings.settings.collectAsStateWithLifecycle()
                 val station by app.stations.current.collectAsStateWithLifecycle()
                 val lastLine by RideService.lastLine.collectAsStateWithLifecycle()
@@ -91,6 +92,7 @@ class MainActivity : ComponentActivity() {
                     }
                     else -> MainScreen(
                         riding = state != null,
+                        finishing = finishing,
                         settings = settings,
                         channelName = station.displayName,
                         lastLine = lastLine,

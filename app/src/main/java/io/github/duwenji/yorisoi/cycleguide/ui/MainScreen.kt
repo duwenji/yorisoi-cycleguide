@@ -34,6 +34,8 @@ import io.github.duwenji.yorisoi.cycleguide.style.RideStyles
 @Composable
 fun MainScreen(
     riding: Boolean,
+    /** The ride is ending: its look back is being written. */
+    finishing: Boolean,
     settings: RideSettings,
     channelName: String,
     lastLine: Line?,
@@ -62,6 +64,8 @@ fun MainScreen(
             }
             when {
                 !hasLocationPermission -> Button(onClick = onRequestPermission, modifier = Modifier.fillMaxWidth()) { Text("位置情報を許可する") }
+                // The look back takes a few seconds: the button says so at once (F-28).
+                finishing -> Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) { Text("振り返り中…") }
                 riding -> Button(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("走行を終える") }
                 else -> Button(
                     onClick = { if (settings.earphoneNoticeShown) onStart() else noticing = true },

@@ -20,8 +20,8 @@ android {
         applicationId = "io.github.duwenji.yorisoi.cycleguide"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.6.0"
+        versionCode = 10
+        versionName = "1.7.0"
 
         // The operator's AI (platform API-AI-RELAY): the development relay, as in SanpoGuide, until
         // production's is deployed. It takes this app once the console lists it (requirements X-5).

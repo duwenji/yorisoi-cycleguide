@@ -39,6 +39,7 @@ import io.github.duwenji.yorisoi.cycleguide.cue.RideContext
 import io.github.duwenji.yorisoi.cycleguide.guide.Line
 import io.github.duwenji.yorisoi.cycleguide.guide.PoiSpot
 import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
+import io.github.duwenji.yorisoi.cycleguide.history.SpotTalk
 import io.github.duwenji.yorisoi.cycleguide.guide.Narrator
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.kit.channel.Station
@@ -139,6 +140,8 @@ class RideService : LifecycleService() {
         _lastLine.value = null
         _walked.value = emptyList()
         _heading.value = null
+        _talks.value = emptyList()
+        _talkedSpots.value = emptyList()
         super.onDestroy()
     }
 
@@ -390,6 +393,8 @@ class RideService : LifecycleService() {
         }
         line?.let { say(it, motion.state(System.currentTimeMillis())) }
         s.carriedOut(decision, now)
+        if (s.talks.size != _talks.value.size) _talks.value = s.talks.toList()
+        if (s.spots.size != _talkedSpots.value.size) _talkedSpots.value = s.spots.toList()
     }
 
     /** The fixed line for a spot talked about on an earlier ride (REQ-FREQUENT-WAYS F-11); null for a new one. */
@@ -553,6 +558,19 @@ class RideService : LifecycleService() {
          * is no ride. Kept from the way ridden while stopped.
          */
         val heading: StateFlow<Double?> = _heading.asStateFlow()
+
+        private val _talks = MutableStateFlow<List<SpotTalk>>(emptyList())
+
+        /** What was said about each spot on the current ride, in order, for the map while stopped; empty when there is no ride. */
+        val talks: StateFlow<List<SpotTalk>> = _talks.asStateFlow()
+
+        private val _talkedSpots = MutableStateFlow<List<Poi>>(emptyList())
+
+        /**
+         * The spots talked about on the current ride, in order, for the map while stopped: kept there
+         * after the search has moved on from them. Empty when there is no ride.
+         */
+        val talkedSpots: StateFlow<List<Poi>> = _talkedSpots.asStateFlow()
 
         fun start(context: Context) {
             context.startForegroundService(Intent(context, RideService::class.java))

@@ -128,4 +128,4 @@ private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, saveWay: (S
     }
 }
 
-private val clock = SimpleDateFormat("H:mm", Locale.JAPAN)
+internal val clock = SimpleDateFormat("H:mm", Locale.JAPAN)

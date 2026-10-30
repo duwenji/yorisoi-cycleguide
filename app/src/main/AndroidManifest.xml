@@ -25,7 +25,7 @@
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         tools:ignore="DataExtractionRules"
-        android:icon="@drawable/ic_bike"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.CycleGuide">

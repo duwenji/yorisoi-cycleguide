@@ -8,8 +8,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,6 +22,7 @@ import io.github.duwenji.yorisoi.cycleguide.ways.WaySections
 import io.github.duwenji.yorisoi.kit.geo.map.FrequentWaysScreen
 import io.github.duwenji.yorisoi.kit.geo.map.WayActions
 import io.github.duwenji.yorisoi.kit.geo.map.WayWords
+import io.github.duwenji.yorisoi.kit.mood.MoodTheme
 import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
 import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
@@ -38,10 +40,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         hasLocationPermission = isGranted(Manifest.permission.ACCESS_FINE_LOCATION) || isGranted(Manifest.permission.ACCESS_COARSE_LOCATION)
         if (!hasLocationPermission) requestPermissions()
         setContent {
-            MaterialTheme {
+            // The ecosystem's green, as SanpoGuide's with moods off; dark with the system.
+            MoodTheme(null, systemDark = isSystemInDarkTheme()) {
                 val state by RideService.state.collectAsStateWithLifecycle()
                 val finishing by RideService.finishing.collectAsStateWithLifecycle()
                 val settings by app.settings.settings.collectAsStateWithLifecycle()

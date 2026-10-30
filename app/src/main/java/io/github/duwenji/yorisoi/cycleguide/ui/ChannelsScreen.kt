@@ -85,15 +85,11 @@ fun ChannelsScreen(app: CycleApp, onClose: () -> Unit) {
         pending = withTimeoutOrNull(5_000) { app.stations.list.first { l -> l.any { it.id == id } } }?.first { it.id == id }
     }
 
-    Scaffold { padding ->
+    Scaffold(topBar = { ScreenBar("チャンネル・リスト", onBack = onClose) }) { padding ->
         Column(
             Modifier.padding(padding).fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("チャンネル・リスト", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-                TextButton(onClick = onClose) { Text("閉じる") }
-            }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             message?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
             if (notices.isNotEmpty()) {

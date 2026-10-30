@@ -50,14 +50,8 @@ fun HistoryScreen(rides: List<RideSummary>, ride: (Long) -> RideRecord?, saveWay
         RideDetail(startedAt, ride, saveWay, map, onClose = { open = null })
         return
     }
-    Scaffold { padding ->
+    Scaffold(topBar = { ScreenBar("走行の履歴", onBack = onClose) }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp)) {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("走行の履歴", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-                    TextButton(onClick = onClose) { Text("閉じる") }
-                }
-            }
             items(rides, key = { it.startedAt }) { r ->
                 Column(Modifier.fillMaxWidth().clickable { open = r.startedAt }.padding(vertical = 12.dp)) {
                     Text(r.text(), style = MaterialTheme.typography.bodyLarge)
@@ -74,17 +68,11 @@ private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, saveWay: (S
     val ride by produceState<RideRecord?>(null, startedAt) { value = withContext(Dispatchers.IO) { read(startedAt) } }
     var makingWay by rememberSaveable { mutableStateOf(false) }
     var madeWay by rememberSaveable { mutableStateOf<String?>(null) }
-    Scaffold { padding ->
+    Scaffold(topBar = { ScreenBar("走行", onBack = onClose) }) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("走行", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-                    TextButton(onClick = onClose) { Text("一覧へ") }
-                }
-            }
             val r = ride ?: return@LazyColumn
             item { Text(r.summary.text(), style = MaterialTheme.typography.bodyLarge) }
             r.recap?.let { item { Text(it, style = MaterialTheme.typography.bodyMedium) } }

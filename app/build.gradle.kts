@@ -77,6 +77,7 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 
@@ -99,6 +100,8 @@ dependencies {
     implementation(libs.yorisoi.kit.companion)
     implementation(libs.yorisoi.kit.voice)
     implementation(libs.yorisoi.kit.llm)
+    // The ecosystem's green, as in SanpoGuide (MoodTheme with no mood).
+    implementation(libs.yorisoi.kit.mood)
     // kit-channel's OkHttpProviderHttp and TinkEd25519 (third-party channels) need them.
     implementation(libs.okhttp)
     implementation(libs.tink.android)

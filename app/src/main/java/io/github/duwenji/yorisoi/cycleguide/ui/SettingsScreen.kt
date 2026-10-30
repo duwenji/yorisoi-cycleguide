@@ -13,8 +13,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.duwenji.yorisoi.kit.llm.AiConnection
 import io.github.duwenji.yorisoi.kit.llm.AiRoute
@@ -70,16 +77,12 @@ fun SettingsScreen(
     onOpenWays: (() -> Unit)?,
 ) {
     val values = settings.values
-    Scaffold { padding ->
+    Scaffold(topBar = { ScreenBar("設定", onBack = onClose) }) { padding ->
         LazyColumn(
             Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("設定", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-                    TextButton(onClick = onClose) { Text("閉じる") }
-                }
                 Text("走り方", style = MaterialTheme.typography.titleMedium)
             }
             item {
@@ -104,9 +107,13 @@ fun SettingsScreen(
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(item.label, modifier = Modifier.weight(1f))
                             val value = values[item]
-                            TextButton(onClick = { onChange { it.withValue(item, value - step(item)) } }, enabled = value > item.min) { Text("−") }
-                            Text("$value${item.unit}")
-                            TextButton(onClick = { onChange { it.withValue(item, value + step(item)) } }, enabled = value < item.max) { Text("＋") }
+                            FilledTonalIconButton(onClick = { onChange { it.withValue(item, value - step(item)) } }, enabled = value > item.min) {
+                                Icon(Icons.Filled.Remove, contentDescription = "${item.label}を減らす")
+                            }
+                            Text("$value${item.unit}", textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 64.dp))
+                            FilledTonalIconButton(onClick = { onChange { it.withValue(item, value + step(item)) } }, enabled = value < item.max) {
+                                Icon(Icons.Filled.Add, contentDescription = "${item.label}を増やす")
+                            }
                         }
                     }
                 }

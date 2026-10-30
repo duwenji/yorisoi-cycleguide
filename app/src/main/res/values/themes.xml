@@ -1,6 +1,4 @@
 <resources>
-    <style name="Theme.CycleGuide" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- Dark status bar icons on the light screens; the riding screen is black but shows no icons to read. -->
-        <item name="android:windowLightStatusBar">true</item>
-    </style>
+    <!-- The status bar's icons follow the system's dark mode (enableEdgeToEdge in MainActivity). -->
+    <style name="Theme.CycleGuide" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

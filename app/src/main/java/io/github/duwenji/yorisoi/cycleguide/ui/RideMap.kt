@@ -1,13 +1,16 @@
 package io.github.duwenji.yorisoi.cycleguide.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,9 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
+import io.github.duwenji.yorisoi.cycleguide.guide.SpotFacts
 import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
 import io.github.duwenji.yorisoi.cycleguide.history.SpotTalk
 import io.github.duwenji.yorisoi.cycleguide.ride.RideService
@@ -182,7 +188,10 @@ fun PastRideMap(ride: RideRecord, map: MapChoice, modifier: Modifier = Modifier)
     }
 }
 
-/** The spot pressed on a map: its name, kind and distance, and what was said there on the ride. */
+/**
+ * The spot pressed on a map: its name, kind and distance, what OpenStreetMap says about it
+ * ([SpotFacts], there before anything is said), and what was said there on the ride.
+ */
 @Composable
 private fun SpotInfo(item: SpotItem, talks: List<SpotTalk>, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val poi = item.poi
@@ -197,11 +206,29 @@ private fun SpotInfo(item: SpotItem, talks: List<SpotTalk>, onClose: () -> Unit,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            val facts = remember(poi.id) { SpotFacts.of(poi.tags) }
+            val uriHandler = LocalUriHandler.current
             Column(
                 Modifier.padding(top = 8.dp, end = 12.dp).heightIn(max = 160.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (talks.isEmpty()) Text("この走行ではまだ話していません", style = MaterialTheme.typography.bodyMedium)
+                facts.forEach { fact ->
+                    Row {
+                        Text(fact.label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(80.dp))
+                        if (fact.url != null) {
+                            Text(
+                                fact.value,
+                                style = MaterialTheme.typography.bodyMedium.copy(textDecoration = TextDecoration.Underline),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable { uriHandler.openUri(fact.url) },
+                            )
+                        } else {
+                            Text(fact.value, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+                if (facts.isNotEmpty()) HorizontalDivider(Modifier.padding(vertical = 2.dp))
+                if (talks.isEmpty()) Text("この走行ではまだ話していません", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 talks.forEach { talk ->
                     Text("${clock.format(talk.at)}　${talk.text}", style = MaterialTheme.typography.bodyMedium)
                 }

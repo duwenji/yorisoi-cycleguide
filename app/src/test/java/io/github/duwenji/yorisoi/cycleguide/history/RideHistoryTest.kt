@@ -57,6 +57,16 @@ class RideHistoryTest {
     }
 
     @Test
+    fun `a spot keeps the tags its card reads, and no others`() {
+        val tagged = shrine.copy(tags = shrine.tags + mapOf("religion" to "shinto", "operator" to "宗教法人", "ref" to "123"))
+        val back = RideHistory.fromJson(RideHistory.toJson(record().copy(spots = listOf(tagged)))).spots.single()
+        assertEquals(mapOf("wikipedia" to "ja:鶴岡八幡宮", "religion" to "shinto"), back.tags)
+        // Rides kept before the tags were.
+        val old = RideHistory.toJson(record()).apply { getJSONArray("spots").getJSONObject(0).remove("tags") }
+        assertTrue(RideHistory.fromJson(old).spots.single().tags.isEmpty())
+    }
+
+    @Test
     fun `the rides since a time are read from their files`() {
         val history = RideHistory(tmp.newFolder("rides"))
         history.add(record(start))
@@ -98,8 +108,8 @@ class RideHistoryTest {
         val again = RideHistory(dir)
         assertEquals(listOf(second.startedAt, first.startedAt), again.rides.value.map { it.startedAt })
         assertEquals("今日もよく走りました。", again.rides.value.first().recap)
-        // Only what the map draws a spot with.
-        assertEquals(second.copy(spots = listOf(shrine.copy(tags = emptyMap()))), again.latest.value)
+        // The shrine's only tag is one its card reads.
+        assertEquals(second, again.latest.value)
         assertEquals(first.startedAt, again.ride(first.startedAt)!!.startedAt)
 
         again.clear()

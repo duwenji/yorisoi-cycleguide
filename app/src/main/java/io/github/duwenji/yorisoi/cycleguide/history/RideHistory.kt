@@ -1,6 +1,7 @@
 package io.github.duwenji.yorisoi.cycleguide.history
 
 import io.github.duwenji.yorisoi.cycleguide.companion.RideSession
+import io.github.duwenji.yorisoi.kit.geo.SpotFacts
 import io.github.duwenji.yorisoi.kit.geo.LatLon
 import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.RouteGeometry
@@ -179,10 +180,14 @@ class RideHistory(private val dir: File, legacy: File? = null, private val onErr
             .put("endedAt", ride.endedAt)
             .put("distanceM", ride.distanceM)
             .put("route", JSONArray().apply { ride.route.forEach { put(JSONArray().put(it.lat).put(it.lon)) } })
-            // Only what the map draws a spot with.
+            // Only what the map draws a spot with, and the tags its card reads (SpotFacts).
             .put("spots", JSONArray().apply {
                 ride.spots.forEach {
-                    put(JSONObject().put("id", it.id).put("name", it.name).put("lat", it.lat).put("lon", it.lon).put("category", it.category))
+                    val tags = it.tags.filterKeys { k -> k in SpotFacts.KEYS }
+                    put(
+                        JSONObject().put("id", it.id).put("name", it.name).put("lat", it.lat).put("lon", it.lon).put("category", it.category)
+                            .apply { if (tags.isNotEmpty()) put("tags", JSONObject(tags)) },
+                    )
                 }
             })
             .put("talks", JSONArray().apply {
@@ -207,7 +212,8 @@ class RideHistory(private val dir: File, legacy: File? = null, private val onErr
                 route = List(route.length()) { i -> route.getJSONArray(i).let { LatLon(it.getDouble(0), it.getDouble(1)) } },
                 spots = List(spots.length()) { i ->
                     spots.getJSONObject(i).let {
-                        Poi(it.getString("id"), it.getString("name"), it.getDouble("lat"), it.getDouble("lon"), it.getString("category"), emptyMap())
+                        val tags = it.optJSONObject("tags")?.let { t -> t.keys().asSequence().associateWith(t::getString) }.orEmpty()
+                        Poi(it.getString("id"), it.getString("name"), it.getDouble("lat"), it.getDouble("lon"), it.getString("category"), tags)
                     }
                 },
                 talks = List(talks.length()) { i ->

@@ -1,7 +1,7 @@
 package io.github.duwenji.yorisoi.cycleguide.history
 
 import io.github.duwenji.yorisoi.cycleguide.companion.RideSession
-import io.github.duwenji.yorisoi.cycleguide.guide.SpotFacts
+import io.github.duwenji.yorisoi.kit.geo.SpotFacts
 import io.github.duwenji.yorisoi.kit.geo.LatLon
 import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.RouteGeometry

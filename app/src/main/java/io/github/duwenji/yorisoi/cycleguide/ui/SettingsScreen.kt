@@ -40,6 +40,7 @@ import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
 import io.github.duwenji.yorisoi.cycleguide.history.RideHistory
 import io.github.duwenji.yorisoi.cycleguide.settings.RideSettings
 import io.github.duwenji.yorisoi.kit.channel.Station
+import io.github.duwenji.yorisoi.kit.geo.map.MapStyle
 import io.github.duwenji.yorisoi.kit.companion.SessionRecorder
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -123,6 +124,7 @@ fun SettingsScreen(
                 )
             }
             item { AiSettings(settings, onChange) }
+            item { MapSection(settings, onChange) }
             item { WaysSection(settings, onChange, onOpenWays) }
             if (hasHistory) item { HistorySection(clearHistory) }
             item { AboutSection(settings, onChange, exportRides) }
@@ -235,7 +237,7 @@ private fun AboutSection(settings: RideSettings, onChange: ((RideSettings) -> Ri
     }
     Column(Modifier.padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("このアプリについて", style = MaterialTheme.typography.titleMedium)
-        Text("地図: 国土地理院　スポット・信号: © OpenStreetMap contributors　天気: Open-Meteo.com", style = MaterialTheme.typography.bodySmall)
+        Text("地図: 国土地理院・© OpenStreetMap contributors　スポット・信号: © OpenStreetMap contributors　天気: Open-Meteo.com", style = MaterialTheme.typography.bodySmall)
         Text(
             "バージョン ${BuildConfig.VERSION_NAME}" + when {
                 settings.developerMode -> "（開発者モード）"
@@ -262,6 +264,27 @@ private fun AboutSection(settings: RideSettings, onChange: ((RideSettings) -> Ri
                 onChange { it.copy(developerMode = false) }
             }) { Text("開発者モードをやめる") }
         }
+    }
+}
+
+/** The map under the spots while stopped and in the history; OpenStreetMap falls back to pale GSI ([MapChoice]). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MapSection(settings: RideSettings, onChange: ((RideSettings) -> RideSettings) -> Unit) {
+    Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("地図", style = MaterialTheme.typography.titleMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RideSettings.MAP_STYLES.forEach { style ->
+                FilterChip(selected = settings.mapStyle == style, onClick = { onChange { it.copy(mapStyle = style) } }, label = { Text(style.label) })
+            }
+        }
+        val description = if (settings.mapStyle == MapStyle.OSM_STANDARD) {
+            "OpenStreetMap の標準地図。地図を表示すると、表示している場所の地図画像を OpenStreetMap のサーバーから取得します。" +
+                "寄付で運営されている共用のサーバーのため、オフライン用にまとめて保存することはしません。取得できないときは地理院の淡色地図で表示します"
+        } else {
+            settings.mapStyle.description
+        }
+        Text(description, style = MaterialTheme.typography.bodySmall)
     }
 }
 

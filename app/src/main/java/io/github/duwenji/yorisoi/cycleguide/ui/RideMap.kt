@@ -12,7 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,20 +32,60 @@ import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.map.FacilityItem
 import io.github.duwenji.yorisoi.kit.geo.map.MapStyle
 import io.github.duwenji.yorisoi.kit.geo.map.MapTiles
+import io.github.duwenji.yorisoi.kit.geo.map.OsmTiles
+import io.github.duwenji.yorisoi.kit.geo.map.OsmTilesException
 import io.github.duwenji.yorisoi.kit.geo.map.SpotItem
 import io.github.duwenji.yorisoi.kit.geo.map.SpotMap
 import io.github.duwenji.yorisoi.kit.geo.map.rememberHeading
+import kotlinx.coroutines.CancellationException
 import kotlin.math.roundToInt
+
+/**
+ * What the maps show: the rider's choice, or pale GSI with [notice] saying why OpenStreetMap isn't
+ * shown. Its server has no SLA and may refuse the app (OSMF tile usage policy).
+ * [onTilesFailed] is for [SpotMap]'s report of OpenStreetMap tiles failing while shown.
+ */
+class MapChoice(val tiles: MapTiles, val notice: String?, val onTilesFailed: () -> Unit)
+
+/** The map for [style]: OpenStreetMap after one tile came through ([OsmTiles.check]), checked again when [retry] changes. */
+@Composable
+fun rememberMapChoice(style: MapStyle, osm: OsmTiles, retry: Any?): MapChoice {
+    // null until checked; then the reason it failed, or "" when it came through.
+    var failure by remember(style, retry) { mutableStateOf<String?>(null) }
+    LaunchedEffect(style, retry) {
+        if (style != MapStyle.OSM_STANDARD) return@LaunchedEffect
+        failure = try {
+            osm.check()
+            ""
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: OsmTilesException) {
+            e.message
+        } catch (e: Exception) {
+            Log.w("RideMap", "OpenStreetMap tile check failed", e)
+            "OpenStreetMap の地図に接続できませんでした"
+        }
+    }
+    val tiles = when {
+        style != MapStyle.OSM_STANDARD -> MapTiles.Gsi(style)
+        failure == "" -> MapTiles.Osm
+        else -> MapTiles.Gsi(MapStyle.GSI_PALE)
+    }
+    val notice = failure?.takeIf { it.isNotEmpty() }?.let { "$it。地理院の淡色地図で表示しています" }
+    return MapChoice(tiles, notice) {
+        if (failure == "") failure = "OpenStreetMap の地図を取得できなくなりました"
+    }
+}
 
 /**
  * The map while stopped on a ride (architecture.md 図 1), the way ridden at the top: where the rider is and faces, the spots
  * near and those talked about on this ride, the style's amenities found, and the way ridden. A spot pressed shows what it is
  * and what was said there, under the map so the spot stays in sight. Never while moving (requirements S-1), and not outside a ride, when the
- * app doesn't use the location (privacy policy 3); [LastRideMap] is shown then. The pale GSI map, so
- * spots and the way stand out.
+ * app doesn't use the location (privacy policy 3); [LastRideMap] is shown then. On the [map] the rider
+ * chose (pale GSI unless changed, so spots and the way stand out).
  */
 @Composable
-fun RideMap(app: CycleApp, modifier: Modifier = Modifier) {
+fun RideMap(app: CycleApp, map: MapChoice, modifier: Modifier = Modifier) {
     val location by app.spots.location.collectAsStateWithLifecycle()
     val spots by app.spots.spots.collectAsStateWithLifecycle()
     val talkedSpots by RideService.talkedSpots.collectAsStateWithLifecycle()
@@ -59,8 +101,9 @@ fun RideMap(app: CycleApp, modifier: Modifier = Modifier) {
     val items = (talkedSpots + spots).distinctBy { it.id }
         .map { poi -> SpotItem(poi, location?.let { poi.distanceFrom(it).toInt() }, visitCount = 0) }
     Column(modifier) {
+        map.notice?.let { MapNotice(it) }
         SpotMap(
-            tiles = MapTiles.Gsi(MapStyle.GSI_PALE),
+            tiles = map.tiles,
             location = location,
             heading = rememberHeading(location),
             spots = items,
@@ -76,6 +119,7 @@ fun RideMap(app: CycleApp, modifier: Modifier = Modifier) {
             // The way ridden at the top, as the companion's "ahead" and "on the right" (Ahead);
             // in steps, so the GPS's drift while stopped doesn't keep turning it.
             up = way?.let { (it / UP_STEP_DEG).roundToInt() * UP_STEP_DEG % 360f },
+            onTilesFailed = map.onTilesFailed,
         )
         picked?.let { poi ->
             SpotInfo(
@@ -89,25 +133,31 @@ fun RideMap(app: CycleApp, modifier: Modifier = Modifier) {
 
 private const val UP_STEP_DEG = 10f
 
+@Composable
+private fun MapNotice(text: String) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 4.dp))
+}
+
 /**
  * The ride last finished, outside a ride (requirements F-31): the whole way ridden and the spots
  * talked about, with no position, since the app doesn't use the location then.
  */
 @Composable
-fun LastRideMap(ride: RideRecord, modifier: Modifier = Modifier) {
+fun LastRideMap(ride: RideRecord, map: MapChoice, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("前回の走行: ${ride.summary.text()}", style = MaterialTheme.typography.bodyMedium)
-        PastRideMap(ride, Modifier.fillMaxWidth().weight(1f))
+        PastRideMap(ride, map, Modifier.fillMaxWidth().weight(1f))
     }
 }
 
 /** A finished ride's whole way and the spots talked about, with no position; a spot pressed shows what was said there. */
 @Composable
-fun PastRideMap(ride: RideRecord, modifier: Modifier = Modifier) {
+fun PastRideMap(ride: RideRecord, map: MapChoice, modifier: Modifier = Modifier) {
     var picked by remember(ride.startedAt) { mutableStateOf<Poi?>(null) }
     Column(modifier) {
+        map.notice?.let { MapNotice(it) }
         SpotMap(
-            tiles = MapTiles.Gsi(MapStyle.GSI_PALE),
+            tiles = map.tiles,
             location = null,
             heading = null,
             spots = ride.spots.distinctBy { it.id }.map { SpotItem(it, distanceM = null, visitCount = 0) },
@@ -120,6 +170,7 @@ fun PastRideMap(ride: RideRecord, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth().weight(1f).clipToBounds(),
             selected = picked,
             fitWalked = true,
+            onTilesFailed = map.onTilesFailed,
         )
         picked?.let { poi ->
             SpotInfo(

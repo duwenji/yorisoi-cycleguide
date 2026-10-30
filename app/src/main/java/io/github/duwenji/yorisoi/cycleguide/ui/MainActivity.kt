@@ -49,6 +49,8 @@ class MainActivity : ComponentActivity() {
                 val lastLine by RideService.lastLine.collectAsStateWithLifecycle()
                 val lastRide by app.history.latest.collectAsStateWithLifecycle()
                 val rides by app.history.rides.collectAsStateWithLifecycle()
+                // Tried again at the start and end of a ride, when OpenStreetMap had failed.
+                val map = rememberMapChoice(settings.mapStyle, app.osmTiles, retry = state != null)
                 var showSettings by rememberSaveable { mutableStateOf(false) }
                 var showHistory by rememberSaveable { mutableStateOf(false) }
                 var showChannels by rememberSaveable { mutableStateOf(false) }
@@ -88,7 +90,7 @@ class MainActivity : ComponentActivity() {
                     // Not during a ride: the history is for afterwards (S-2).
                     showHistory && state == null -> {
                         BackHandler { showHistory = false }
-                        HistoryScreen(rides, app.history::ride, saveWay = { name, points, at -> app.ways.add(name, points, at) }, onClose = { showHistory = false })
+                        HistoryScreen(rides, app.history::ride, saveWay = { name, points, at -> app.ways.add(name, points, at) }, map = map, onClose = { showHistory = false })
                     }
                     else -> MainScreen(
                         riding = state != null,
@@ -106,8 +108,8 @@ class MainActivity : ComponentActivity() {
                         onSettings = { showSettings = true },
                         onHistory = { showHistory = true }.takeIf { state == null && rides.isNotEmpty() },
                         map = when {
-                            state != null -> { modifier -> RideMap(app, modifier) }
-                            else -> lastRide?.let { ride -> { modifier -> LastRideMap(ride, modifier) } }
+                            state != null -> { modifier -> RideMap(app, map, modifier) }
+                            else -> lastRide?.let { ride -> { modifier -> LastRideMap(ride, map, modifier) } }
                         },
                     )
                 }

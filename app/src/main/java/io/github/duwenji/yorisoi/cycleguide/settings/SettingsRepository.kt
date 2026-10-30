@@ -7,6 +7,7 @@ import io.github.duwenji.yorisoi.cycleguide.style.RideStyles
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.cycleguide.style.StyleValues
 import io.github.duwenji.yorisoi.kit.channel.ChannelChoice
+import io.github.duwenji.yorisoi.kit.geo.map.MapStyle
 import io.github.duwenji.yorisoi.kit.llm.AiConnection
 import io.github.duwenji.yorisoi.kit.llm.AiRoute
 import io.github.duwenji.yorisoi.kit.llm.KeyCipher
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * What the rider chose: the ride style, their changes to each style's values (kept per style, so
- * switching back finds them again), the channel, and how the AI is reached (per-provider keys and
+ * switching back finds them again), the channel, the map, and how the AI is reached (per-provider keys and
  * models, so switching back keeps them).
  */
 data class RideSettings(
@@ -37,6 +38,8 @@ data class RideSettings(
     val developerMode: Boolean = false,
     /** Whether the ways ridden again and again become frequent ways by themselves (REQ-FREQUENT-WAYS F-17). */
     val findWays: Boolean = true,
+    /** The map under the spots: pale GSI unless chosen otherwise, so spots and the way stand out. */
+    val mapStyle: MapStyle = MapStyle.GSI_PALE,
 ) {
     fun apiKey(p: Provider = provider): String = apiKeys[p].orEmpty()
     fun model(p: Provider = provider): String = models[p]?.takeIf { it.isNotBlank() } ?: p.defaultModel
@@ -62,6 +65,8 @@ data class RideSettings(
     companion object {
         /** The daily limits offered on the settings screen; null is「上限なし」. */
         val DAILY_AI_LIMITS: List<Int?> = listOf(30, 60, 100, 200, null)
+        /** The maps offered: those needing no key (the app has no place for a Google key). */
+        val MAP_STYLES: List<MapStyle> = MapStyle.entries.filterNot { it.needsGoogleKey }
     }
 }
 
@@ -101,6 +106,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
             dailyAiLimit = if (prefs.contains(KEY_DAILY_AI_LIMIT)) prefs.getInt(KEY_DAILY_AI_LIMIT, NO_LIMIT).takeIf { it != NO_LIMIT } else 100,
             developerMode = prefs.getBoolean(KEY_DEVELOPER_MODE, false),
             findWays = prefs.getBoolean(KEY_FIND_WAYS, true),
+            mapStyle = prefs.getString(KEY_MAP_STYLE, null)?.let { n -> RideSettings.MAP_STYLES.firstOrNull { it.name == n } } ?: MapStyle.GSI_PALE,
         )
     }
 
@@ -114,6 +120,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
         putInt(KEY_DAILY_AI_LIMIT, s.dailyAiLimit ?: NO_LIMIT)
         putBoolean(KEY_DEVELOPER_MODE, s.developerMode)
         putBoolean(KEY_FIND_WAYS, s.findWays)
+        putString(KEY_MAP_STYLE, s.mapStyle.name)
         for (p in Provider.entries) {
             val key = s.apiKeys[p]?.trim().orEmpty()
             if (key.isEmpty()) remove(keyPref(p)) else putString(keyPref(p), KeyCipher.encrypt(key))
@@ -141,5 +148,6 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
         const val NO_LIMIT = -1
         const val KEY_DEVELOPER_MODE = "developer_mode"
         const val KEY_FIND_WAYS = "find_ways"
+        const val KEY_MAP_STYLE = "map_style"
     }
 }

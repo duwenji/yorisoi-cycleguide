@@ -248,4 +248,3 @@ platform の ADR-ECOSYSTEM-PLATFORM は、2 本目のアプリをサイクリン
 - [platform ADR-ECOSYSTEM-PLATFORM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/decisions/ADR-ECOSYSTEM-PLATFORM.md)
 - [platform API-CHANNEL-PACKAGE](https://github.com/duwenji/yorisoi-platform/blob/main/docs/contracts/API-CHANNEL-PACKAGE.md)
 - [SanpoGuide](https://github.com/duwenji/yorisoi-sanpoguide)
-- [要件整理の記録](skill-logs/requirements_refinement_2026-10-24.md)

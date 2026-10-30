@@ -6,7 +6,8 @@
 
 - [要件定義](docs/requirements.md)
 - [設計](docs/architecture.md)
-- [公開と更新](docs/release.md)
+- [公開と更新](docs/release.md)・[Play Console の申告](docs/play-console.md)
+- [プライバシーポリシー](docs/privacy-policy.md)
 - [TODO](docs/TODO.md)
 
 ## 構成

@@ -43,11 +43,11 @@ import java.util.Locale
  * @param saveWay makes a frequent way of part of a ride: its name, its points, when the ride ended (REQ-FREQUENT-WAYS F-16)
  */
 @Composable
-fun HistoryScreen(rides: List<RideSummary>, ride: (Long) -> RideRecord?, saveWay: (String, List<LatLon>, Long) -> Unit, onClose: () -> Unit) {
+fun HistoryScreen(rides: List<RideSummary>, ride: (Long) -> RideRecord?, saveWay: (String, List<LatLon>, Long) -> Unit, map: MapChoice, onClose: () -> Unit) {
     var open by rememberSaveable { mutableStateOf<Long?>(null) }
     open?.let { startedAt ->
         BackHandler { open = null }
-        RideDetail(startedAt, ride, saveWay, onClose = { open = null })
+        RideDetail(startedAt, ride, saveWay, map, onClose = { open = null })
         return
     }
     Scaffold { padding ->
@@ -70,7 +70,7 @@ fun HistoryScreen(rides: List<RideSummary>, ride: (Long) -> RideRecord?, saveWay
 }
 
 @Composable
-private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, saveWay: (String, List<LatLon>, Long) -> Unit, onClose: () -> Unit) {
+private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, saveWay: (String, List<LatLon>, Long) -> Unit, map: MapChoice, onClose: () -> Unit) {
     val ride by produceState<RideRecord?>(null, startedAt) { value = withContext(Dispatchers.IO) { read(startedAt) } }
     var makingWay by rememberSaveable { mutableStateOf(false) }
     var madeWay by rememberSaveable { mutableStateOf<String?>(null) }
@@ -111,7 +111,7 @@ private fun RideDetail(startedAt: Long, read: (Long) -> RideRecord?, saveWay: (S
                     )
                 }
             } else {
-                item { PastRideMap(r, Modifier.fillMaxWidth().height(320.dp)) }
+                item { PastRideMap(r, map, Modifier.fillMaxWidth().height(320.dp)) }
                 item {
                     madeWay?.let { Text("「$it」をよく通る道にしました", style = MaterialTheme.typography.bodySmall) }
                     OutlinedButton(onClick = { makingWay = true }, modifier = Modifier.fillMaxWidth()) { Text("この走行からよく通る道を作る") }

@@ -48,6 +48,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import io.github.duwenji.yorisoi.kit.geo.map.OsmTiles
 import org.osmdroid.config.Configuration
 import java.io.File
 
@@ -91,6 +92,7 @@ class CycleApp : Application() {
     lateinit var ways: FrequentWayStore
         private set
     val weather = WeatherClient()
+    val osmTiles = OsmTiles()
 
     /** The way the rider goes, set by the ride service; the spot search looks ahead along it. */
     @Volatile

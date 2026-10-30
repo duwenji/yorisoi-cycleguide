@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.duwenji.yorisoi.kit.ui.ScreenBar
 import io.github.duwenji.yorisoi.core.format.TalkLevel
 import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.CycleApp

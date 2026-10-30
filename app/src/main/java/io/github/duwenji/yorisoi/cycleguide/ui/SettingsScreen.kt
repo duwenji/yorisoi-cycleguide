@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.duwenji.yorisoi.kit.ui.ScreenBar
 import io.github.duwenji.yorisoi.kit.llm.AiConnection
 import io.github.duwenji.yorisoi.kit.llm.AiRoute
 import io.github.duwenji.yorisoi.kit.llm.Provider

@@ -4,7 +4,7 @@
 |---|---|
 | 対象 | CycleGuide（yorisoi-cycleguide）の構造と、platform・管理システムの変更 |
 | 読む人 | アプリ開発者 |
-| 状態 | 設計（承認済み。段階 1 は実装済み） |
+| 状態 | 設計（承認済み。段階 1・2 は実装済み、段階 3 は未着手） |
 | 関連 | [要件定義](requirements.md)、[platform ADR-ECOSYSTEM-PLATFORM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/decisions/ADR-ECOSYSTEM-PLATFORM.md)、[SanpoGuide の構造図](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/architecture.md) |
 
 SanpoGuide と同じ作りを基本にします。DI ライブラリは使わず、`CycleApp.onCreate()` が共有部品を作り、画面と常駐のサービス（`RideService`）がそれを使います。散歩と違うのは、主に次の 4 つです。
@@ -23,7 +23,7 @@ flowchart LR
     MainScreen["MainScreen<br/>最後の話・地図（走行中は止まっているときだけ。走行の外は前回の走行）"]
     RidingScreen["RidingScreen<br/>「走行中」だけ"]
     SettingsScreen["SettingsScreen<br/>走り方・値の調整・AI"]
-    HistoryScreen["HistoryScreen<br/>履歴・振り返り（段階 2）"]
+    HistoryScreen["HistoryScreen<br/>履歴・振り返り"]
   end
 
   subgraph RIDE["常駐処理（ride）"]
@@ -35,11 +35,11 @@ flowchart LR
   subgraph APP["共有部品（CycleApp.onCreate() で生成）"]
     style["style<br/>RideStyle・RideStyles・StyleValues"]
     companion["companion<br/>Motion・Ahead・QuietZones・SpeechBudget<br/>RideDecider・RideSession・DeferredTalk"]
-    channel["kit-channel（platform に新設）<br/>Station・StationPrompts・StationRepository"]
+    channel["kit-channel<br/>Station・StationPrompts・StationRepository"]
     guide["kit-llm<br/>LlmClient・RelayClient・OperatorAi・OutputCheck・AiUsage"]
-    geo["kit-geo<br/>SpotRepository・Overpass・天気・日の入り・地図<br/>前方の探し方・信号・自転車のルート"]
+    geo["kit-geo<br/>SpotRepository・運営のタイル・Overpass・天気・日の入り・地図<br/>前方の探し方・信号・自転車のルート"]
     voice["kit-voice<br/>Speaker"]
-    history["history<br/>RideHistory（段階 2）"]
+    history["history<br/>RideHistory"]
     diag["diagnostics<br/>開発者モードの記録"]
   end
 
@@ -115,11 +115,11 @@ flowchart LR
 - 残りの時間 =（距離 − 50 m）÷ 速度 − 話の秒数 − 文を作る時間（5 秒）。残りの時間が 15 秒以下になったら話し始め、0 を切っていたら間に合わないので取っておきます（`Ahead.timing`。`RideDecision.Defer`）
 - 走りながらの見どころの話は、（距離 − 50 m）÷ 速度 − 話の秒数（最低 5 秒）までしか AI の答えを待ちません（`Ahead.answerSec`）。過ぎたら定型の文を話し、あとから届いた答えは捨てます。見どころを過ぎてから「この先」と話さないためです。開発者モードの記録には `ai_late` が残ります。止まっているときの話は、運営の AI の中継の上限（28 秒）まで待ちます
 - スポットの取得は、現在地ではなく前方の点（現在地から向きに「前方を探す距離」の半分進んだ点）を中心に行います（kit-geo の `SpotRepository` の `searchCenter`）。中心が 300 m 動いたら取り直します
-- Overpass のすべてのサーバーで失敗したら、次に問い合わせるまで 20 秒・30 秒・1 分（3 回目以降）待ちます（`CycleApp.SPOT_RETRY_DELAYS_MS`）。kit-geo の既定（最長 5 分）では、待っている間に残っている答えの範囲（600 m）を出て、前方の見どころが何もない区間が続くためです
+- 運営のタイルが取れず、Overpass のすべてのサーバーでも失敗したら、次に問い合わせるまで 20 秒・30 秒・1 分（3 回目以降）待ちます（`CycleApp.SPOT_RETRY_DELAYS_MS`）。kit-geo の既定（最長 5 分）では、待っている間に残っている答えの範囲（600 m）を出て、前方の見どころが何もない区間が続くためです
 
 ### 話さない場面（`QuietZones`）
 
-- 信号の位置（OSM の `highway=traffic_signals`）を、スポットと一緒に Overpass で取ります
+- 信号の位置（OSM の `highway=traffic_signals`）を、スポットと一緒に運営のタイル（取れないときは Overpass）で取ります
 - 動いているときに、信号から 30 m 以内に入るか、走り方の「話さない速さ」以上になったら、`NOT_QUIET` を閉じます。止まっているとき（信号待ちを含む）は閉じません
 
 ### 画面と通知（S-1・S-2・S-3）
@@ -154,7 +154,7 @@ flowchart LR
 | 部品 | 設計 |
 |---|---|
 | 見つけ方と残し方（F-3・F-4・F-12） | kit-geo の `FrequentWayFinder`（サイクルの値: 3 回・500 m・30 m 以内。`CycleApp.WAY_FINDER`）と `FrequentWayStore`（`files/ways.json`）を使います。走行を残すとき（`CycleApp.keepRide`）に、過去 60 日の走行（`RideHistory.since`）と比べて、通った道の回数を増やし、設定の「よく通る道を自動で見つける」が入なら新しい道を探します。名前は、その走行で出会った見どころから付けます（`FrequentWayFinder.nameFrom`）。通った道と何回目か、新しくできた道は `RideRecord.ways`（`RideWay`）に入れ、履歴の 1 件の画面に出します（D-12）。終了のボタンでもサービスが止められたときも同じです |
-| 前もっての取得（F-6〜F-8・D-9） | `ways` の `WayPrefetchWorker`（WorkManager）が、`SpotRepository.prefetch` で道に沿って取っておきます。1 日 1 回（起動時に `scheduleDaily`）と、走行を残したあとに 1 回（`afterRide`）。どちらも従量制でないネットワークで、電池が少なくないときだけ。走行中に動いたら何もしません。道は最後に通った日の新しい順に渡し、1 回 20 問い合わせまでです |
+| 前もっての取得（F-6〜F-8・D-9） | `ways` の `WayPrefetchWorker`（WorkManager）が、`SpotRepository.prefetch` で道に沿って取っておきます。1 日 1 回（起動時に `scheduleDaily`）と、走行を残したあとに 1 回（`afterRide`）。どちらも従量制でないネットワークで、電池が少なくないときだけ。走行中に動いたら何もしません。道は最後に通った日の新しい順に渡し、1 回で運営のタイル 40 枚・Overpass 20 問い合わせまでです |
 | 前に話した見どころ（F-9〜F-11・D-11） | 走行の開始時に、過去 60 日の走行の話（`SpotTalk`）から `PastTalks` を作り、`RideSession.past` に入れます。同じ見どころかは、ID が同じか、同じ名前で 200 m 以内です（SanpoGuide の再訪と同じ）。前の話から 24 時間たっていない見どころは、ルール ④ で選びません（`AheadSpot.talkedRecently`。きっかけで指された見どころは除く）。24 時間より前に話した見どころは、AI の依頼に前の文を入れ（`guide/user` の `before`。「# 前の走行で話したこと」）、別の切り口で話させます。前の文にしか書いていない事実は使わせません（前の文は AI が作ったもので、作り話が混ざりうるため）。AI が使えないときの定型の文は「また〇〇の横を通ります。」（通り過ぎたあとは「さきほどは、また〇〇の横を通りました。」）です |
 | 画面（F-13〜F-18） | 設定の「よく通る道」に、自動で見つけるかの切り替えと、kit-geo の `FrequentWaysScreen`（言葉は `WayWords.RIDE`）を開くボタン（走行中は出さない）を置きます。`FrequentWaysScreen` は一覧（名前・長さ・回数・最後に通った日・作り方）と 1 件の画面（地図・名前の変更・保存・削除・その道で話した見どころ）です。その道で話した見どころは、過去 60 日の走行で、道から 100 m 以内の見どころの最後の話です（`WaySections.talksOn`）。履歴の 1 件の画面の「この走行からよく通る道を作る」は、地図と範囲のつまみ（最初は両端の 200 m を除く）で始まりと終わりを選び、名前を付けて保存します（kit-geo の `NewWayFromTrip`）。履歴を消すと、保存していない自動の道と消した道の記録も消します（`CycleApp.clearHistory`） |
 
@@ -179,63 +179,24 @@ flowchart LR
 
 | パッケージ | 役割 | 主なファイル |
 |---|---|---|
-| `ui` | 画面と ViewModel | MainScreen, RidingScreen, SettingsScreen, HistoryScreen |
-| `ride` | 常駐のサービス、イヤホンの注意、メディアボタン、前回の走行 | RideService, EarphoneWatch, EarphoneRule, MediaButtons, LastRide |
+| `ui` | 画面と ViewModel（走行中の画面は MainScreen の中） | MainActivity, MainScreen, SettingsScreen, HistoryScreen, ChannelsScreen, RideMap |
+| `ride` | 常駐のサービス、イヤホンの注意 | RideService, EarphoneNotice（EarphoneWatch・EarphoneRule） |
+| `channel` | アプリの見え方（取り込みの互換性・機能）、通報のメール | CycleProfile, AppReport |
+| `cue` | きっかけの判定と見せ方 | RideCues |
+| `guide` | 見どころの話と振り返りの AI への依頼 | Narrator |
 | `companion` | 判定とその材料、定型の話（AI で文を作るまでの話と、安全の案内の文） | RideDecider, RideSession, Motion, Ahead, QuietZones, SpeechBudget, DeferredTalk, Lines |
 | `style` | 走り方と調整 | RideStyle, RideStyles, StyleValues |
 | `settings` | 設定の保存（走り方・走り方ごとの値の変更・チャンネル・イヤホンの注意を出したか） | SettingsRepository |
-| `history` | 走行の履歴（段階 2）と、前の走行で話した見どころ | RideHistory, PastTalks |
+| `history` | 走行の履歴と、前の走行で話した見どころ | RideHistory, PastTalks |
 | `ways` | よく通る道の前もっての取得と、道で話した見どころ | WayPrefetchWorker, WaySections |
 | `diagnostics` | 開発者モードの記録の書き出し（記録そのものは platform kit-companion の `SessionRecorder`。走行の開始・位置・状態・判定・話・読み上げの時間・AI・天気・スポットの検索） | RideExport |
 | (root) | 共有部品の生成、通知チャンネルの登録 | CycleApp |
 
-## platform に移すもの（要件 D-4）
-
-SanpoGuide のアプリ側にあるコードを、CycleGuide で使う段階の前に platform に移します。移したあと SanpoGuide もそれを使うように直し、SanpoGuide のテストとエミュレータの散策で確かめます（R-3）。
-
-| 段階 | 移すもの（SanpoGuide のいまの場所） | 移す先 | 直す抽象 |
-|---|---|---|---|
-| 1 | `guide/OperatorAi`・`guide/OutputCheck`・`settings/AiUsage` | `kit-llm` | `OperatorAi` が読む `BuildConfig`（中継の URL・Play Integrity）を引数にする |
-| 1 | `station/Station`・`StationRepository`、`material/ChannelMaterials`、`:prompts` の `BuiltInChannels` の読み込み | `kit-channel`（新設。`Station`・`StationRepository`・`ResourceChannels`・`ChannelMaterials`） | `Station` が持つ頻度を、コアの段階（`TalkLevel`）だけにする。間隔などの値はアプリが持つ。`StationRepository` は設定（`GuideSettings`）ではなく `ChannelChoice` を受け取り、記録（`WalkRecord`）ではなくチャンネルの key の並びから名前を作る。スロットからプロンプトの変数を作るところ（`StationPrompts`）、表示名（`StationLabels`）、費用の目安（`AiCost`）は、アプリの文面と値によるのでアプリに残す |
-| 1 | `diagnostics/WalkDiagnostics` | `kit-companion`（`SessionRecorder`） | 散歩の名前を外し、開始と終了の種類の名前を引数にする（SanpoGuide は `walk_start`・`walk_end` のまま） |
-| 2 | `station/remote`（`ChannelSync`・`ChannelStore`・`ThirdPartyChannels`・`TinkEd25519`）、`report/Report` | `kit-channel` | `ChannelSync` が読む `SanpoProfile` を `AppProfile` の引数にする |
-| 2 | `material`（`Producer`・`Cues`・`Selectors`・`MaterialPlan`・`Grounding`・`ResourceProducer`） | `kit-channel` | `Producer` が読む `TalkEvent`・`WalkSession` を、汎用の文脈（`MaterialContext`、ADR-ECOSYSTEM-PLATFORM E-16）にする |
-
-`kit-channel` の新設は、E-4（「素材提供者の実装とチャンネルの取り込み・画面は、2 本目のアプリで共通の形が分かるまでアプリに置く」）の見直しにあたります。段階 1 の移し替えの前に、platform の ADR に足します。
-
-## platform・管理システムのそのほかの変更
+## platform・管理システムに残る変更
 
 | 段階 | 先 | 変更 |
 |---|---|---|
-| 1 | kit-geo | 天気の急変の判定（`WeatherChangeDetector`。SanpoGuide から移し、先読みの時間と強い雨の量を引数にする） |
-| 1 | kit-geo | 前方を中心にした取得（`SpotRepository` に取得の中心を渡せるようにする。渡さなければ今と同じ）、信号の位置の取得（任意。SanpoGuide は使わない） |
-| 1 | core-format | `cycleguide` を含む版を公開する（PR #29 は版を上げていない） |
-| 1 | yorisoi-console | アプリの一覧（`ecosystem.ts`）・中継の受け付けるパッケージ（`relay-config.ts`）・段階の版（`appStageVersions`）に CycleGuide を足す（要件 X-5） |
-| 2 | yorisoi-console | `cycle` の見本を、CycleGuide のプロンプト・パックで作る（X-6） |
-| 2 | kit-channel | `CuePresenter` に出す見せ方の集まりを渡せるようにする（渡さなければ今と同じ。SanpoGuide は変えない）（X-7） |
-| 2 | yorisoi-console | `ecosystem.ts` の cycleguide の機能に `trigger:spot`・`trigger:point` を足す。素材を持つチャンネルは第 1 段なので、段階の版（`appStageVersions`）の cycleguide の第 1 段を 1.4.0 (7) からにする（開発用。本番は Play に出すとき）。通しの確認の台本（`tools/e2e/app-check.ts --cycle`）を、地点のきっかけ付きにする（X-7） |
 | 3 | kit-geo | 自転車のルート、線に沿った取得、標高 |
-
-## 段階 1 の実装の順番
-
-1. platform: ADR に `kit-channel` を足す。kit-llm・kit-channel への移し替え、kit-geo の前方の取得と信号。SanpoGuide を新しい版に上げて確かめる
-2. CycleGuide: リポジトリの骨組み（Gradle・`:app`・`:prompts`・CI）
-3. 走り方・`Motion`・`SpeechBudget`・`Ahead`・`QuietZones`・`RideDecider`（判定は Android に依存しない形にし、場面のテストを書く）
-4. `RideService`・画面・イヤホンの注意
-5. プロンプト・パックと組み込みのチャンネル（U-4 を決める）
-6. 開発者モードの記録、エミュレータでの受入条件の確認
-7. 管理システムの変更（X-5）
-
-## 段階 2 の実装の順番
-
-1. CycleGuide: `RideHistory`・`HistoryScreen`・振り返り（F-28）。前回の走行を履歴のいちばん新しい走行にする（platform の変更は要らない）。内部テストに出す
-2. platform: `kit-channel` に `station/remote`・`report`・`material` を移す（`MaterialContext`）。kit-geo の施設の種類と取る種類の指定、方角の言い方。SanpoGuide を新しい版に上げて確かめる
-3. 施設の案内（`AmenityAdvisor`・ルール ⑧、F-7）。場面のテストを書く
-4. チャンネルの取り込みと画面（`CycleProfile`・`ChannelsScreen`、F-26）
-5. プロンプト・パックの公開と審査の見本（F-30）、管理システムの変更（X-6）
-6. エミュレータでの受入条件の確認（AC-9・AC-14・AC-21・AC-23）
-7. platform: `CuePresenter` の見せ方の絞り込み。管理システム: `ecosystem.ts` の機能と通しの確認の台本（X-7）
-8. CycleGuide: きっかけ（`CycleProfile` の機能・組み込みの素材提供者・ルール ④・④′・`DeferredTalk`、F-32）。場面のテストを書く。エミュレータで AC-31・AC-32 を確かめ、内部テストに出す
 
 ## 未決事項
 

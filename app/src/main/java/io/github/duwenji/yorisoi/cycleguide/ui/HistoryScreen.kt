@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.duwenji.yorisoi.kit.ui.ScreenBar
 import io.github.duwenji.yorisoi.cycleguide.history.RideRecord
 import io.github.duwenji.yorisoi.cycleguide.history.RideSummary
 import io.github.duwenji.yorisoi.kit.geo.LatLon

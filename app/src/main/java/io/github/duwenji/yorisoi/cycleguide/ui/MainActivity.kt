@@ -22,7 +22,7 @@ import io.github.duwenji.yorisoi.cycleguide.ways.WaySections
 import io.github.duwenji.yorisoi.kit.geo.map.FrequentWaysScreen
 import io.github.duwenji.yorisoi.kit.geo.map.WayActions
 import io.github.duwenji.yorisoi.kit.geo.map.WayWords
-import io.github.duwenji.yorisoi.kit.mood.MoodTheme
+import io.github.duwenji.yorisoi.kit.ui.YorisoiTheme
 import io.github.duwenji.yorisoi.cycleguide.BuildConfig
 import io.github.duwenji.yorisoi.cycleguide.CycleApp
 import io.github.duwenji.yorisoi.cycleguide.diagnostics.RideExport
@@ -44,8 +44,7 @@ class MainActivity : ComponentActivity() {
         hasLocationPermission = isGranted(Manifest.permission.ACCESS_FINE_LOCATION) || isGranted(Manifest.permission.ACCESS_COARSE_LOCATION)
         if (!hasLocationPermission) requestPermissions()
         setContent {
-            // The ecosystem's green, as SanpoGuide's with moods off; dark with the system.
-            MoodTheme(null, systemDark = isSystemInDarkTheme()) {
+            YorisoiTheme(dark = isSystemInDarkTheme()) {
                 val state by RideService.state.collectAsStateWithLifecycle()
                 val finishing by RideService.finishing.collectAsStateWithLifecycle()
                 val settings by app.settings.settings.collectAsStateWithLifecycle()

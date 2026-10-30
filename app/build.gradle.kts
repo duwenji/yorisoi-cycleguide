@@ -100,8 +100,8 @@ dependencies {
     implementation(libs.yorisoi.kit.companion)
     implementation(libs.yorisoi.kit.voice)
     implementation(libs.yorisoi.kit.llm)
-    // The ecosystem's green, as in SanpoGuide (MoodTheme with no mood).
-    implementation(libs.yorisoi.kit.mood)
+    // The ecosystem's green, the bar on top of the screens and the launcher icon's green, shared with SanpoGuide.
+    implementation(libs.yorisoi.kit.ui)
     // kit-channel's OkHttpProviderHttp and TinkEd25519 (third-party channels) need them.
     implementation(libs.okhttp)
     implementation(libs.tink.android)

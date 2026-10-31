@@ -1,6 +1,6 @@
 # CycleGuide
 
-自転車で走る人のそばで、周りの見どころや安全の情報を声で伝える Android アプリです。付き添いアプリのエコシステム **yorisoi** の 2 本目のアプリで、共通の部品は [yorisoi-platform](https://github.com/duwenji/yorisoi-platform) を使います。
+自転車で走る人のそばで、周りの見どころや安全の情報を声で伝える Android アプリです。設定でオンにすると、その場所を通った人の一言や店・地域のお知らせ（スタジオ）も読み上げます。付き添いアプリのエコシステム **yorisoi** の 2 本目のアプリで、共通の部品は [yorisoi-platform](https://github.com/duwenji/yorisoi-platform) を使います。
 
 ## 文書
 

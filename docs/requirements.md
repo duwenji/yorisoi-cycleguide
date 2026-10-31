@@ -139,6 +139,7 @@ platform の ADR-ECOSYSTEM-PLATFORM は、2 本目のアプリをサイクリン
 | 要件ID | 内容 | 段階 |
 |---|---|---|
 | F-30 | `cycle` の代表のアプリとして、プロンプト・パックを公開し、管理システムで見本を作れるようにする | 2 |
+| F-34 | スタジオ（platform [REQ-STUDIO](https://github.com/duwenji/yorisoi-platform/blob/main/docs/requirements/REQ-STUDIO.md)）: 設定でオンにしたとき、走行中に近くの一言と掲載を、話すことがなく話さない場面でもないときに読み上げる。一言を置く・いいね・通報・ブロックは止まっているときだけ | 2 |
 
 ## 非機能要件
 

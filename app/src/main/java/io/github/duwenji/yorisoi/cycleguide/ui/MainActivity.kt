@@ -11,12 +11,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.duwenji.yorisoi.cycleguide.history.PastTalks
 import io.github.duwenji.yorisoi.cycleguide.ways.WaySections
 import io.github.duwenji.yorisoi.kit.geo.map.FrequentWaysScreen
@@ -60,6 +62,10 @@ class MainActivity : ComponentActivity() {
                 var showWays by rememberSaveable { mutableStateOf(false) }
                 val ways by app.ways.ways.collectAsStateWithLifecycle()
                 val stations by app.stations.list.collectAsStateWithLifecycle()
+                val studio: StudioViewModel = viewModel()
+                // Placing a note is for standing still: moving off drops it (platform kit-studio README).
+                LaunchedEffect(state) { if (state == MotionState.MOVING) studio.cancelNote() }
+                if (state != MotionState.MOVING) NoteFlow(studio)
                 when {
                     // Nothing to read while moving (requirements S-1).
                     state == MotionState.MOVING -> RidingScreen()
@@ -88,6 +94,7 @@ class MainActivity : ComponentActivity() {
                             hasHistory = rides.isNotEmpty(), clearHistory = app::clearHistory,
                             stations = stations, current = station, riding = state != null, onOpenChannels = { showChannels = true },
                             onOpenWays = { showWays = true }.takeIf { state == null },
+                            studio = studio,
                         )
                     }
                     // Not during a ride: the history is for afterwards (S-2).
@@ -114,6 +121,7 @@ class MainActivity : ComponentActivity() {
                             state != null -> { modifier -> RideMap(app, map, modifier) }
                             else -> lastRide?.let { ride -> { modifier -> LastRideMap(ride, map, modifier) } }
                         },
+                        studio = studio.takeIf { it.available },
                     )
                 }
             }

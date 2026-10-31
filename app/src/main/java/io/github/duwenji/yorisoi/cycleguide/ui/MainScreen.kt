@@ -74,6 +74,8 @@ fun MainScreen(
     onHistory: (() -> Unit)? = null,
     /** The map while stopped on a ride, or of the last ride outside one; null when there is none to show. */
     map: (@Composable (Modifier) -> Unit)? = null,
+    /** The studio: what can be done with its line, and placing a note; null without the studio. */
+    studio: StudioViewModel? = null,
 ) {
     // The rules on phones and earphones, before the first ride (requirements S-3, S-5, AC-8).
     var noticing by remember { mutableStateOf(false) }
@@ -93,9 +95,13 @@ fun MainScreen(
                 StatusChip(Icons.Filled.Tune, "走り方: ${RideStyles.byId(settings.styleId).label}", onSettings)
                 StatusChip(Icons.Outlined.Podcasts, channelName, onSettings)
             }
-            lastLine?.let { LastLineCard(it, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
-            if (map != null) map(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp).clip(MaterialTheme.shapes.medium))
-            else NoMap(Modifier.fillMaxWidth().weight(1f))
+            lastLine?.let { LastLineCard(it, studio, Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                if (map != null) map(Modifier.fillMaxSize().padding(horizontal = 16.dp).clip(MaterialTheme.shapes.medium))
+                else NoMap(Modifier.fillMaxSize())
+                // Placing a note: stopped on a ride (the screen is shown only while stopped).
+                if (riding && !finishing && studio != null) NoteMicButton(studio, Modifier.align(Alignment.BottomEnd).padding(end = 28.dp, bottom = 12.dp))
+            }
             Column(
                 Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -138,13 +144,15 @@ private fun StatusChip(icon: ImageVector, text: String, onClick: () -> Unit) {
     AssistChip(onClick = onClick, label = { Text(text) }, leadingIcon = { Icon(icon, contentDescription = null, Modifier.size(18.dp)) })
 }
 
-/** What the companion said last, with its credit. */
+/** What the companion said last, with its credit; a line of the studio with what to do with it. */
 @Composable
-private fun LastLineCard(line: Line, modifier: Modifier = Modifier) {
+private fun LastLineCard(line: Line, studio: StudioViewModel?, modifier: Modifier = Modifier) {
     Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.medium) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            line.studio?.let { StudioLabel(it) }
             Text(line.text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
             line.credit?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer) }
+            if (studio != null) line.studio?.let { StudioLineActions(it, studio) }
         }
     }
 }

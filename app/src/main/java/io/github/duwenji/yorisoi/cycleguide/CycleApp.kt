@@ -23,6 +23,7 @@ import io.github.duwenji.yorisoi.kit.geo.Trip
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
+import io.github.duwenji.yorisoi.cycleguide.studio.StudioHub
 import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.kit.channel.StationRepository
@@ -57,7 +58,7 @@ import java.io.File
  * SanpoGuide; docs/architecture.md 図 1).
  */
 class CycleApp : Application() {
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     lateinit var settings: SettingsRepository
         private set
@@ -90,6 +91,10 @@ class CycleApp : Application() {
 
     /** The ways ridden again and again, and the ones the rider made (REQ-FREQUENT-WAYS). */
     lateinit var ways: FrequentWayStore
+        private set
+
+    /** Notes and placements near the ride (platform REQ-STUDIO, kit-studio). */
+    lateinit var studio: StudioHub
         private set
     val weather = WeatherClient()
     val osmTiles = OsmTiles()
@@ -162,6 +167,7 @@ class CycleApp : Application() {
         )
         WayPrefetchWorker.scheduleDaily(this)
         speaker = Speaker(this)
+        studio = StudioHub(this, relay, BuildConfig.STUDIO_URL, speaker.speaking)
         getSystemService(NotificationManager::class.java).apply {
             createNotificationChannel(NotificationChannel(CHANNEL_RIDE, "走行中", NotificationManager.IMPORTANCE_LOW))
         }

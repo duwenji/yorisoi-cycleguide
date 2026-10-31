@@ -16,7 +16,7 @@ okhttp = "4.12.0"
 tink = "1.23.0"
 junit = "4.13.2"
 # The yorisoi platform (github.com/duwenji/yorisoi-platform): one version for all modules.
-yorisoi = "2.25.0"
+yorisoi = "2.26.0"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -47,6 +47,7 @@ yorisoi-kit-companion = { module = "io.github.duwenji.yorisoi:kit-companion", ve
 yorisoi-kit-voice = { module = "io.github.duwenji.yorisoi:kit-voice", version.ref = "yorisoi" }
 yorisoi-kit-llm = { module = "io.github.duwenji.yorisoi:kit-llm", version.ref = "yorisoi" }
 yorisoi-kit-ui = { module = "io.github.duwenji.yorisoi:kit-ui", version.ref = "yorisoi" }
+yorisoi-kit-studio = { module = "io.github.duwenji.yorisoi:kit-studio", version.ref = "yorisoi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

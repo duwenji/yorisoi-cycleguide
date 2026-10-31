@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- A note of the studio, spoken and written out on the device (platform REQ-STUDIO F-2). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <!-- Android 11+ hides other apps' services unless declared: without this the TTS engine can't
          be bound and every spoken line is silently dropped. -->

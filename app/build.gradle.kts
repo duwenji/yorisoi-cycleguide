@@ -20,8 +20,8 @@ android {
         applicationId = "io.github.duwenji.yorisoi.cycleguide"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.7.0"
+        versionCode = 11
+        versionName = "1.8.0"
 
         // The operator's AI (platform API-AI-RELAY): the development relay, as in SanpoGuide, until
         // production's is deployed. It takes this app once the console lists it (requirements X-5).
@@ -32,6 +32,9 @@ android {
         // The operator's spot tiles (platform API-SPOT-TILES ST-1): every build uses the development
         // ones until production's are deployed.
         buildConfigField("String", "SPOT_TILES_URL", "\"https://ds73vvo5wv45e.cloudfront.net/\"")
+        // The studio (platform API-STUDIO ST-1): every build uses the development studio until
+        // production's is deployed.
+        buildConfigField("String", "STUDIO_URL", "\"https://x568icz881.execute-api.ap-northeast-1.amazonaws.com/api/\"")
     }
 
     signingConfigs {
@@ -87,6 +90,7 @@ dependencies {
     // (lint fails release builds with InvalidFragmentVersionForActivityResult).
     implementation(libs.androidx.fragment)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.service)
     // Searching ahead along the frequent ways, on Wi-Fi and between rides (REQ-FREQUENT-WAYS D-9).
     implementation(libs.androidx.work.runtime)
@@ -102,6 +106,8 @@ dependencies {
     implementation(libs.yorisoi.kit.llm)
     // The ecosystem's green, the bar on top of the screens and the launcher icon's green, shared with SanpoGuide.
     implementation(libs.yorisoi.kit.ui)
+    // The studio: notes and placements near the ride (platform REQ-STUDIO, kit-studio).
+    implementation(libs.yorisoi.kit.studio)
     // kit-channel's OkHttpProviderHttp and TinkEd25519 (third-party channels) need them.
     implementation(libs.okhttp)
     implementation(libs.tink.android)

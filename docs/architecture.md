@@ -158,6 +158,17 @@ flowchart LR
 | 前に話した見どころ（F-9〜F-11・D-11） | 走行の開始時に、過去 60 日の走行の話（`SpotTalk`）から `PastTalks` を作り、`RideSession.past` に入れます。同じ見どころかは、ID が同じか、同じ名前で 200 m 以内です（SanpoGuide の再訪と同じ）。前の話から 24 時間たっていない見どころは、ルール ④ で選びません（`AheadSpot.talkedRecently`。きっかけで指された見どころは除く）。24 時間より前に話した見どころは、AI の依頼に前の文を入れ（`guide/user` の `before`。「# 前の走行で話したこと」）、別の切り口で話させます。前の文にしか書いていない事実は使わせません（前の文は AI が作ったもので、作り話が混ざりうるため）。AI が使えないときの定型の文は「また〇〇の横を通ります。」（通り過ぎたあとは「さきほどは、また〇〇の横を通りました。」）です |
 | 画面（F-13〜F-18） | 設定の「よく通る道」に、自動で見つけるかの切り替えと、kit-geo の `FrequentWaysScreen`（言葉は `WayWords.RIDE`）を開くボタン（走行中は出さない）を置きます。`FrequentWaysScreen` は一覧（名前・長さ・回数・最後に通った日・作り方）と 1 件の画面（地図・名前の変更・保存・削除・その道で話した見どころ）です。その道で話した見どころは、過去 60 日の走行で、道から 100 m 以内の見どころの最後の話です（`WaySections.talksOn`）。履歴の 1 件の画面の「この走行からよく通る道を作る」は、地図と範囲のつまみ（最初は両端の 200 m を除く）で始まりと終わりを選び、名前を付けて保存します（kit-geo の `NewWayFromTrip`）。履歴を消すと、保存していない自動の道と消した道の記録も消します（`CycleApp.clearHistory`） |
 
+### スタジオ（platform REQ-STUDIO）
+
+部品は platform の kit-studio（[API-STUDIO](https://github.com/duwenji/yorisoi-platform/blob/main/docs/contracts/API-STUDIO.md)）。運営の AI の中継が使えるときだけ動きます。
+
+| 部品 | 設計 |
+|---|---|
+| 取得と送信 | 走行を始めると `StudioHub.startRide()` が `StudioFeed` を作り、位置ごとに周辺の区画の一言・掲載を取ります（5 分おき）。走行を終えると、聞いた・開いた・いいねをまとめて送ります |
+| 読み上げ | `RideDecider` が話すことがなく（`Nothing`）、話さない場面（`QuietZones`）でもなく、前の話から 1 分空いていれば、`RideService.maybeStudio` が一言・掲載を 1 つ読みます。走っている間も読みます（D-13）。掲載に音声があれば `ClipPlayer` で続けて流します |
+| 止まっているときの操作 | 画面は止まっているときだけ出るので、一言を置く（地図の右下のマイク、`NoteFlow`）・いいね・ブロック・通報・音声をもう一度（最後の話のカード）も止まっているときだけです。走り出すと、置きかけの一言はやめます |
+| 設定 | 設定の「スタジオ」（`StudioSettingsPart`）: 一言・お知らせを聞くかどうか、自分の一言、ブロックの一覧 |
+
 ### 段階 3 の部品
 
 | 部品 | 設計 |
@@ -189,6 +200,7 @@ flowchart LR
 | `settings` | 設定の保存（走り方・走り方ごとの値の変更・チャンネル・イヤホンの注意を出したか） | SettingsRepository |
 | `history` | 走行の履歴と、前の走行で話した見どころ | RideHistory, PastTalks |
 | `ways` | よく通る道の前もっての取得と、道で話した見どころ | WayPrefetchWorker, WaySections |
+| `studio` | スタジオの窓口（設定・端末の記録・走行ごとの取得・一言を置く・通報・ブロック） | StudioHub（画面は `ui` の StudioViews・StudioViewModel） |
 | `diagnostics` | 開発者モードの記録の書き出し（記録そのものは platform kit-companion の `SessionRecorder`。走行の開始・位置・状態・判定・話・読み上げの時間・AI・天気・スポットの検索） | RideExport |
 | (root) | 共有部品の生成、通知チャンネルの登録 | CycleApp |
 

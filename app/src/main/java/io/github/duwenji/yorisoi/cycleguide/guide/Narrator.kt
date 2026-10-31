@@ -10,12 +10,16 @@ import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.geo.weather.Weather
 import io.github.duwenji.yorisoi.kit.llm.OutputCheck
 import io.github.duwenji.yorisoi.kit.llm.Purpose
+import io.github.duwenji.yorisoi.kit.studio.Reading
 import java.util.Calendar
 import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
 
-/** A line to say, and whose words it is: the AI's carry a credit (platform ADR-AI-ROLES H-15), the app's fixed ones none. */
-data class Line(val text: String, val credit: String? = null)
+/**
+ * A line to say, and whose words it is: the AI's carry a credit (platform ADR-AI-ROLES H-15), the
+ * app's fixed ones none, and the studio's are a note or placement ([studio], platform kit-studio).
+ */
+data class Line(val text: String, val credit: String? = null, val studio: Reading? = null)
 
 /** A spot as kit-channel matches a collection's texts to it (API-004 `about`). */
 data class PoiSpot(val poi: Poi, override val distanceM: Int?) : Subject.Spot {

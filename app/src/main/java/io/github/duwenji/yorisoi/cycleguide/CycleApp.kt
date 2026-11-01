@@ -57,7 +57,7 @@ import java.io.File
 
 /**
  * Builds the parts the screens and the ride service share, one by one (no DI library, as in
- * SanpoGuide; docs/architecture.md 図 1).
+ * SanpoGuide; docs/design/architecture.md 図 1).
  */
 class CycleApp : Application() {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)

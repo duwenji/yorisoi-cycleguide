@@ -1,6 +1,6 @@
 # TODO
 
-内部テストに 1.7.0 (10) を出している。出し方は [release.md](release.md)、設計は [architecture.md](architecture.md)。
+内部テストに 1.7.0 (10) を出している。出し方は [release.md](operations/release.md)、設計は [architecture.md](design/architecture.md)。
 
 ## 公開
 

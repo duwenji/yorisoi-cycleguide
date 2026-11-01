@@ -1,5 +1,5 @@
 /**
- * Publishes to Google Play through the Google Play Developer API (docs/play-api.md).
+ * Publishes to Google Play through the Google Play Developer API (yorisoi-sanpoguide docs/operations/play-api.md).
  *
  *   node tools/play.mjs status                                   # the tracks and their releases
  *   node tools/play.mjs listing                                  # the name and descriptions `--listing` sends
@@ -9,11 +9,11 @@
  *   node tools/play.mjs edit --track my-track --discard-drafts
  *   node tools/play.mjs edit --track alpha --halt                    # stops handing out the release
  *   node tools/play.mjs edit --listing --contact --screenshots       # the whole store listing
- *   node tools/play.mjs data-safety docs/play-data-safety.csv
+ *   node tools/play.mjs data-safety docs/operations/play-data-safety.csv
  *
  * `edit` puts an AAB on a track (`--track`, internal by default) and, with `--listing`, the store
- * listing's name and descriptions from docs/play-console.md, in one edit. `--contact` sets the
- * website from docs/play-console.md and clears the phone number; `--screenshots` replaces the phone
+ * listing's name and descriptions from docs/operations/play-console.md, in one edit. `--contact` sets the
+ * website from docs/operations/play-console.md and clears the phone number; `--screenshots` replaces the phone
  * screenshots with store/screenshots/*.png in file name order. `--version-code` puts a bundle already
  * on Play on the track instead, with the release notes it has on another track unless `--notes` is
  * given. `--discard-drafts` removes the track's draft releases; `--halt` halts its rolled-out ones (Play then hands out the
@@ -75,9 +75,9 @@ async function call(method, url, body, contentType = 'application/json') {
   return text ? JSON.parse(text) : {};
 }
 
-const consoleDoc = () => readFileSync(new URL('../docs/play-console.md', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+const consoleDoc = () => readFileSync(new URL('../docs/operations/play-console.md', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
-/** The last cell of the row for `item` in a table of docs/play-console.md. */
+/** The last cell of the row for `item` in a table of docs/operations/play-console.md. */
 function row(doc, item) {
   const line = doc.split('\n').find((l) => l.startsWith(`| ${item} |`));
   if (!line) throw new Error(`play-console.md has no table row "${item}"`);

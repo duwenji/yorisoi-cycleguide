@@ -1,6 +1,6 @@
 # アプリの公開と更新
 
-サイクルガイドを Google Play に出すときの流れと受け持ち。SanpoGuide の[公開と更新](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/release.md)と同じ形で進め、Play の操作は SanpoGuide と同じ Google Play Developer API（サービス アカウント）を使う。
+サイクルガイドを Google Play に出すときの流れと受け持ち。SanpoGuide の[公開と更新](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/operations/release.md)と同じ形で進め、Play の操作は SanpoGuide と同じ Google Play Developer API（サービス アカウント）を使う。
 
 ## 方針
 

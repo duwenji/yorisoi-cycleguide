@@ -1,6 +1,6 @@
 # Play Console の申告
 
-Google Play Console に入れる答え。入れ方（画面の場所、データ セーフティのページの進め方、審査への出し方）は SanpoGuide の [Play Console の申告](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/play-console.md#手順)と同じ。API（`tools/play.mjs`）で送れるのは、AAB・ストアの説明文とスクリーンショット・連絡先・データ セーフティ・審査への送信で、しくみと準備は SanpoGuide の [play-api.md](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/play-api.md) のとおり（鍵は `~/.yorisoi-cycleguide/play-service-account.json`）。公開の流れと受け持ちは [release.md](release.md)。
+Google Play Console に入れる答え。入れ方（画面の場所、データ セーフティのページの進め方、審査への出し方）は SanpoGuide の [Play Console の申告](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/operations/play-console.md#手順)と同じ。API（`tools/play.mjs`）で送れるのは、AAB・ストアの説明文とスクリーンショット・連絡先・データ セーフティ・審査への送信で、しくみと準備は SanpoGuide の [play-api.md](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/operations/play-api.md) のとおり（鍵は `~/.yorisoi-cycleguide/play-service-account.json`）。公開の流れと受け持ちは [release.md](release.md)。
 
 ## アプリの基本
 
@@ -8,7 +8,7 @@ Google Play Console に入れる答え。入れ方（画面の場所、データ
 |---|---|
 | パッケージ名 | `io.github.duwenji.yorisoi.cycleguide` |
 | 署名 | Play App Signing。`release.jks` をアップロード鍵にする（写しは `~/.yorisoi-cycleguide/`） |
-| プライバシーポリシー | https://duwenji.github.io/yorisoi-cycleguide/privacy-policy （GitHub Pages、main の `/docs`） |
+| プライバシーポリシー | https://duwenji.github.io/yorisoi-cycleguide/policies/privacy-policy （GitHub Pages、main の `/docs`） |
 | 広告 | 含まない。マニフェストに `com.google.android.gms.permission.AD_ID` はない（Google のライブラリは play-services-location だけ） |
 | 公開する国・地域 | 日本だけ |
 | 価格 | 有料（アプリの作成のときに選んだ）。金額は公開する前に [アプリの価格設定] で決める。自動保護はオン（Play 以外から入れたものに、Play から入れるよう促す確認が入る） |
@@ -28,11 +28,11 @@ Google Play Console に入れる答え。入れ方（画面の場所、データ
 | アプリ名 | `サイクルガイド` |
 | 簡単な説明 | [下の文](#簡単な説明) |
 | 詳しい説明 | [下の文](#詳しい説明) |
-| アプリのアイコン | [`store/icon-512.png`](../store/icon-512.png) |
-| フィーチャー グラフィック | [`store/feature-1024x500.png`](../store/feature-1024x500.png) |
-| スマートフォンのスクリーンショット | [`store/screenshots/`](../store/screenshots/) を番号の順に。画面で入れる（`tools/play.mjs --screenshots` は、このアプリでは Play が内部エラーを返して受け付けなかった） |
+| アプリのアイコン | [`store/icon-512.png`](../../store/icon-512.png) |
+| フィーチャー グラフィック | [`store/feature-1024x500.png`](../../store/feature-1024x500.png) |
+| スマートフォンのスクリーンショット | [`store/screenshots/`](../../store/screenshots/) を番号の順に。画面で入れる（`tools/play.mjs --screenshots` は、このアプリでは Play が内部エラーを返して受け付けなかった） |
 
-アイコンとフィーチャー グラフィックは [`store/src/`](../store/src/) の SVG から `sh store/src/build.sh` で作る。
+アイコンとフィーチャー グラフィックは [`store/src/`](../../store/src/) の SVG から `sh store/src/build.sh` で作る。
 
 説明文には、星・絵文字・誇張を使わない。運営の AI には 1 日の回数の上限があること、自分の API キーの利用料は各サービスから請求されること、走っている間はスマートフォンを操作しないことは必ず書く。`tools/play.mjs` の `--listing` は、下の 2 つの見出しのすぐ下の `text` のコードブロックを送る。
 
@@ -98,7 +98,7 @@ Google Play Console に入れる答え。入れ方（画面の場所、データ
 | デバイスまたはその他の ID（運営の AI の中継へのインストール ID） | はい | いいえ | いいえ | 任意（運営の AI を使うときだけ） | アプリの機能、不正行為の防止・セキュリティ |
 
 - 位置は、運営のスポットのタイルの配信（タイルの名前で分かる約 4km × 5km の範囲）と、タイルが取れないときの Overpass（見どころ・信号）、Open-Meteo（天気）に送る。地図を出すときは、表示している範囲が国土地理院の地図タイル（設定で「OSM 標準」を選んだときは OpenStreetMap Foundation の地図タイル）に伝わる。AI には送らない。前回の走行の道は端末の中にだけ残す（送らないので、データ セーフティの「収集」には当たらない）
-- 送るデータはすべて HTTPS。アカウントはない。データの削除は「はい」。データ削除用の URL は https://duwenji.github.io/yorisoi-cycleguide/privacy-policy#6-スタジオ 。スタジオの一言は設定の「一言」から期限の前に消せ、ブロックは解ける。スタジオの一言は期限まで、聞いた数などは合計で保管するので、一時的な処理は「いいえ」
+- 送るデータはすべて HTTPS。アカウントはない。データの削除は「はい」。データ削除用の URL は https://duwenji.github.io/yorisoi-cycleguide/policies/privacy-policy#6-スタジオ 。スタジオの一言は設定の「一言」から期限の前に消せ、ブロックは解ける。スタジオの一言は期限まで、聞いた数などは合計で保管するので、一時的な処理は「いいえ」
 - 申告しないもの: 一言を置くときの声は端末の中で文字にし、外に出さない（音声の録音は申告しない）。設定・API キー・開発者モードの記録は端末の外に出ない。名前・メールアドレス・端末の ID・診断情報は扱わない
 
 ## フォアグラウンドサービスの申告
@@ -109,4 +109,4 @@ Google Play Console に入れる答え。入れ方（画面の場所、データ
 | バックグラウンドの位置情報の権限 | 求めない（`ACCESS_BACKGROUND_LOCATION` なし。利用者が画面で「走り始める」を押したときに始める） |
 | 説明 | 利用者が「走り始める」を押してから「走行を終える」を押すまで、画面を閉じても現在地を追い、進む先の見どころの案内、止まったかどうかの判定、天気・日の入りの知らせをする。走行中は通知を出し続け、止まっているときは通知の「終了」からも終えられる |
 | 利用者への影響 | 位置を追うのをやめると、画面を閉じている間の案内と安全の知らせが途切れる |
-| 動画 | [`store/videos/foreground-service-demo.mp4`](../store/videos/foreground-service-demo.mp4)。「走り始める」→ 通知が出る → 走って画面が「走行中」になる → 見どころを話す → 止まって通知の「終了」で終える。Play Console には jsDelivr のコミット固定の URL https://cdn.jsdelivr.net/gh/duwenji/yorisoi-cycleguide@1f89878/store/videos/foreground-service-demo.mp4 を入れる（`video/mp4` で返る。`@` の後ろは動画を入れたコミット。撮り直したら URL も直す） |
+| 動画 | [`store/videos/foreground-service-demo.mp4`](../../store/videos/foreground-service-demo.mp4)。「走り始める」→ 通知が出る → 走って画面が「走行中」になる → 見どころを話す → 止まって通知の「終了」で終える。Play Console には jsDelivr のコミット固定の URL https://cdn.jsdelivr.net/gh/duwenji/yorisoi-cycleguide@1f89878/store/videos/foreground-service-demo.mp4 を入れる（`video/mp4` で返る。`@` の後ろは動画を入れたコミット。撮り直したら URL も直す） |

@@ -28,7 +28,7 @@ import io.github.duwenji.yorisoi.kit.geo.Poi
 import io.github.duwenji.yorisoi.kit.local.LocalReading
 
 /**
- * The ride as this app's built-in producers read it (platform ADR-ECOSYSTEM-PLATFORM E-16):
+ * The ride as this app's built-in producers read it (platform ECOSYSTEM E-16):
  * whether the rider is moving, how many characters may be said now (F-4), and, for a point cue,
  * the nearest spot inside it, which the AI narrates.
  */

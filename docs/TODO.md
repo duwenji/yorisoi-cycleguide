@@ -22,7 +22,7 @@
 - [ ] prompts 0.1.2 の公開（`prompts-v0.1.2`）と、管理システムの validator の追従（見本 `ride-guide-again` が増える）
 - [ ] Play のデータ セーフティの見直し（端末の中だけなので、送る情報は変わらない見込み）
 
-## スポットのタイル（platform ADR-SPOT-TILES）
+## スポットのタイル（platform API-SPOT-TILES）
 
 - [ ] 実機での確認: 走行の記録で、スポットの `source` が `tiles`・`kept_tiles` になり、前方の見どころの空白や待ちが減ったこと
 

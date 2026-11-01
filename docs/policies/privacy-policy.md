@@ -1,3 +1,7 @@
+---
+redirect_from: ["/privacy-policy.html"]
+---
+
 # サイクルガイド プライバシーポリシー
 
 | 項目 | 内容 |

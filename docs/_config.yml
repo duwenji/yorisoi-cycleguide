@@ -1,9 +1,10 @@
 # GitHub Pages (main, /docs) publishes the privacy policy; the rest is for the repository.
 title: サイクルガイド
 lang: ja
-exclude: ["*.md", "*.csv"]
+exclude: ["*.md", "*.csv", "design"]
 include: ["privacy-policy.md"]
 theme: jekyll-theme-primer
+plugins: ["jekyll-redirect-from"]
 defaults:
   - scope: { path: "" }
     values: { layout: default }

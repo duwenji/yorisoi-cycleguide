@@ -5,7 +5,7 @@
 | 対象 | CycleGuide（yorisoi-cycleguide）の構造と、platform・管理システムの変更 |
 | 読む人 | アプリ開発者 |
 | 状態 | 設計（承認済み。段階 1・2 は実装済み、段階 3 は未着手） |
-| 関連 | [要件定義](requirements.md)、[platform ECOSYSTEM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/overview/yorisoi-ecosystem.md)、[SanpoGuide の構造図](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/architecture.md) |
+| 関連 | [要件定義](../requirements/cycleguide.md)、[platform ECOSYSTEM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/overview/yorisoi-ecosystem.md)、[SanpoGuide の構造図](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/design/architecture.md) |
 
 SanpoGuide と同じ作りを基本にします。DI ライブラリは使わず、`CycleApp.onCreate()` が共有部品を作り、画面と常駐のサービス（`RideService`）がそれを使います。散歩と違うのは、主に次の 4 つです。
 

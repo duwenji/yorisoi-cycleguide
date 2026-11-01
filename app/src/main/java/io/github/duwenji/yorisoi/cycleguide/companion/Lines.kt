@@ -55,7 +55,7 @@ object Lines {
 
     /**
      * Shown before the first ride (requirements S-3, S-5): the rules as checked for the release
-     * (docs/release.md「法令の確認」). Shown, not read out.
+     * (docs/operations/release.md「法令の確認」). Shown, not read out.
      */
     const val SAFETY_NOTICE = "自転車を運転しながらスマートフォンを手に持って使うことや、画面を見続けることは、道路交通法で禁止されています（16 歳以上は反則金 12,000 円）。" +
         "このアプリは画面を見ずに使えます。操作は止まってからにしてください。\n\n" +

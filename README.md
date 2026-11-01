@@ -4,10 +4,12 @@
 
 ## 文書
 
-- [要件定義](docs/requirements.md)
-- [設計](docs/architecture.md)
-- [公開と更新](docs/release.md)・[Play Console の申告](docs/play-console.md)
-- [プライバシーポリシー](docs/privacy-policy.md)
+[文書の案内](docs/README.md)
+
+- [要件定義](docs/requirements/cycleguide.md)
+- [設計](docs/design/architecture.md)
+- [公開と更新](docs/operations/release.md)・[Play Console の申告](docs/operations/play-console.md)
+- [プライバシーポリシー](docs/policies/privacy-policy.md)
 - [TODO](docs/TODO.md)
 
 ## 構成
@@ -15,7 +17,7 @@
 | モジュール | 中身 |
 |---|---|
 | `:app` | 画面と常駐の処理 |
-| `:prompts`（JVM） | プロンプト・パック。組み込みのチャンネル（`prompts/src/main/resources/cycleguide/channels/`）と審査の見本（`ReviewSamples`）。GitHub Packages に公開する（`io.github.duwenji.yorisoi.cycleguide:prompts`、[docs/release.md](docs/release.md)） |
+| `:prompts`（JVM） | プロンプト・パック。組み込みのチャンネル（`prompts/src/main/resources/cycleguide/channels/`）と審査の見本（`ReviewSamples`）。GitHub Packages に公開する（`io.github.duwenji.yorisoi.cycleguide:prompts`、[docs/operations/release.md](docs/operations/release.md)） |
 
 ## ビルド
 

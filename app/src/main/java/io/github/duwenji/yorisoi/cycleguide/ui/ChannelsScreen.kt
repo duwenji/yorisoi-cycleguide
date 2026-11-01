@@ -53,7 +53,7 @@ import java.time.format.DateTimeFormatter
 private val TIME = DateTimeFormatter.ofPattern("M/d HH:mm").withZone(ZoneId.systemDefault())
 
 /**
- * The channel lists the user added and the channels they deliver (requirements F-26, API-002
+ * The channel lists the user added and the channels they deliver (requirements F-26, API-CHANNEL-LIST
  * 設定画面のリスト). Opened only outside a ride, from the settings. A channel taken in is used only
  * once the rider accepts how much it talks (platform ADR-004 H-9).
  */

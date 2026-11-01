@@ -21,7 +21,7 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 data class Line(val text: String, val credit: String? = null, val local: Reading? = null)
 
-/** A spot as kit-channel matches a collection's texts to it (API-004 `about`). */
+/** A spot as kit-channel matches a collection's texts to it (API-MATERIALS `about`). */
 data class PoiSpot(val poi: Poi, override val distanceM: Int?) : Subject.Spot {
     override val id: String get() = poi.id
     override val name: String get() = poi.name
@@ -33,7 +33,7 @@ data class PoiSpot(val poi: Poi, override val distanceM: Int?) : Subject.Spot {
 /**
  * The AI's lines on a ride: a spot ahead or passed, and the companion's remarks, written from the
  * prompt pack with the channel's slots and the length the ride allows now. A spot's request carries
- * the texts about it that the channel's collections let the AI take as fact (API-004「AI の根拠」),
+ * the texts about it that the channel's collections let the AI take as fact (API-MATERIALS「AI の根拠」),
  * and the line then names whose they were. Null when the AI can't
  * be had (none set up, the day's limit, a failure) or its reply can't be read out (contact details);
  * the ride service then says the fixed line.
@@ -95,7 +95,7 @@ class Narrator(
             "heritage", "start_date", "architect", "description", "inscription", "wikipedia", "wikidata",
         )
 
-        /** Whose words a line is: the AI's, and the producers whose texts it was written from (API-004 `basedOn`). */
+        /** Whose words a line is: the AI's, and the producers whose texts it was written from (API-MATERIALS `basedOn`). */
         fun credit(aiName: String, basedOn: List<String> = emptyList()): String =
             listOfNotNull("文: $aiName", basedOn.takeIf { it.isNotEmpty() }?.let { "${it.joinToString("・")}の資料をもとに作成" }).joinToString(" / ")
 
@@ -111,7 +111,7 @@ class Narrator(
             "passed" to (distanceM == null),
             "tags" to poi.tags.filterKeys { it in USEFUL_TAGS || it.startsWith("name:") }.map { (k, v) -> "$k=$v" },
             "grounded" to grounds.isNotEmpty(),
-            // A ground can't close its own tag and pass for the prompt (API-004 I-15).
+            // A ground can't close its own tag and pass for the prompt (API-MATERIALS I-15).
             "grounds" to grounds.map { mapOf("text" to fence(it.text), "source" to fence(it.producerName)) }.ifEmpty { null },
             "before" to before?.let(::fence),
         )

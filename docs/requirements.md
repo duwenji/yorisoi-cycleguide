@@ -6,9 +6,6 @@
 | 文書ID | REQ-CYCLEGUIDE |
 | ドキュメント種別 | 要件定義書 |
 | 対象システム/機能 | CycleGuide（yorisoi-cycleguide）。yorisoi の 2 本目の付き添いアプリ |
-| 関連Skill | requirements-refinement |
-| 作成日 | 2026-10-24 |
-| 作成者 | Claude |
 | 承認者 | 開発者（duwenji） |
 | ステータス | 承認済（2026-10-24） |
 

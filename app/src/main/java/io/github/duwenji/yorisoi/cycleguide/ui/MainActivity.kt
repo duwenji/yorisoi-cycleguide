@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
                 when {
                     // Nothing to read while moving (requirements S-1).
                     state == MotionState.MOVING -> RidingScreen()
-                    // Not during a ride: lists are fetched at its start, never during it (API-002 取得の時期).
+                    // Not during a ride: lists are fetched at its start, never during it (API-CHANNEL-LIST 取得の時期).
                     showChannels && state == null -> {
                         BackHandler { showChannels = false }
                         ChannelsScreen(app, onClose = { showChannels = false })

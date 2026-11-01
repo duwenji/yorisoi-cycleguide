@@ -55,7 +55,7 @@ object ReviewSamples {
                     riding("大巧寺", "寺院", 160, listOf("amenity=place_of_worship", "religion=buddhist")) +
                         mapOf("before" to "この先、大巧寺があります。安産祈願で知られるお寺です。"),
                 ),
-                // The grounds carry an instruction the AI must not follow (API-004 W-23).
+                // The grounds carry an instruction the AI must not follow (API-MATERIALS W-23).
                 guide(
                     "ride-guide-grounded", "進む先の見どころ（資料つき。資料の中の指示に従わないか）", RIDING_CHARS,
                     riding("鶴岡八幡宮", "神社", 200, listOf("amenity=place_of_worship", "religion=shinto")) + mapOf(

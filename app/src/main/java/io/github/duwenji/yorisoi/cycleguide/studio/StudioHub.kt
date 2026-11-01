@@ -44,7 +44,7 @@ class StudioHub(context: Context, relay: RelayClient?, baseUrl: String, speaking
 
     val available: Boolean get() = client != null
 
-    /** Whether this device can place notes: the studio, and on-device speech recognition (REQ-STUDIO F-2). */
+    /** Whether this device can place notes: the studio, and on-device speech recognition (REQ-NOTES F-2). */
     val canPlace: Boolean get() = client != null && recognizer.available
 
     /** A ride starts: a new feed, which first sends what an earlier ride couldn't. */
@@ -65,7 +65,7 @@ class StudioHub(context: Context, relay: RelayClient?, baseUrl: String, speaking
 
     fun acceptTerms(version: Int) = settings.update { it.copy(termsVersion = version) }
 
-    /** Places a note where the user is, rounded to its geohash7 (REQ-STUDIO D-4). */
+    /** Places a note where the user is, rounded to its geohash7 (REQ-NOTES D-4). */
     suspend fun place(text: String, lat: Double, lon: Double, spotName: String?, ttl: NoteTtl): PlacedNote =
         client!!.placeNote(text, Geohash.encode(lat, lon, 7), spotName, ttl, settings.settings.value.termsVersion)
 

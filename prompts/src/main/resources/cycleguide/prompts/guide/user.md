@@ -8,7 +8,7 @@
     passed      もう通り過ぎた見どころなら true
     tags        OpenStreetMap のタグ（"key=value" のリスト。案内に役立つものだけ）
     grounded    資料があるなら true
-    grounds     このスポットについての資料（チャンネルが使う素材集のうち、素材提供者が AI の根拠に使ってよいとしたもの。platform API-MATERIAL-PRODUCER「AI の根拠」）。
+    grounds     このスポットについての資料（チャンネルが使う素材集のうち、素材提供者が AI の根拠に使ってよいとしたもの。platform API-MATERIALS「AI の根拠」）。
                 text 本文（山かっこは全角にしてある）、source 素材提供者の名前
     before      前の走行でこの見どころについて話した文（山かっこは全角にしてある）。初めてなら空
 }}

@@ -160,12 +160,12 @@ flowchart LR
 
 ### スタジオ（platform REQ-STUDIO）
 
-部品は platform の kit-studio（[API-STUDIO](https://github.com/duwenji/yorisoi-platform/blob/main/docs/contracts/API-STUDIO.md)）。運営の AI の中継が使えるときだけ動きます。
+部品は platform の kit-studio（[API-LOCAL-MATERIALS](https://github.com/duwenji/yorisoi-platform/blob/main/docs/contracts/API-LOCAL-MATERIALS.md)）。運営の AI の中継が使えるときだけ動きます。
 
 | 部品 | 設計 |
 |---|---|
-| 取得と送信 | 走行を始めると `StudioHub.startRide()` が `StudioFeed` を作り、位置ごとに周辺の区画の一言・掲載を取ります（5 分おき）。走行を終えると、聞いた・開いた・いいねをまとめて送ります |
-| 読み上げ | `RideDecider` が話すことがなく（`Nothing`）、話さない場面（`QuietZones`）でもなく、前の話から 1 分空いていれば、`RideService.maybeStudio` が一言・掲載を 1 つ読みます。走っている間も読みます（D-13）。掲載に音声があれば `ClipPlayer` で続けて流します |
+| 取得と送信 | 走行を始めると `StudioHub.startRide()` が `StudioFeed` を作り、位置ごとに周辺の区画の一言・スタジオを取ります（5 分おき）。走行を終えると、聞いた・開いた・いいねをまとめて送ります |
+| 読み上げ | `RideDecider` が話すことがなく（`Nothing`）、話さない場面（`QuietZones`）でもなく、前の話から 1 分空いていれば、`RideService.maybeStudio` が一言・スタジオを 1 つ読みます。走っている間も読みます（D-13）。スタジオに音声があれば `ClipPlayer` で続けて流します |
 | 止まっているときの操作 | 画面は止まっているときだけ出るので、一言を置く（地図の右下のマイク、`NoteFlow`）・いいね・ブロック・通報・音声をもう一度（最後の話のカード）も止まっているときだけです。走り出すと、置きかけの一言はやめます |
 | 設定 | 設定の「スタジオ」（`StudioSettingsPart`）: 一言・お知らせを聞くかどうか、自分の一言、ブロックの一覧 |
 

@@ -6,7 +6,7 @@ import io.github.duwenji.yorisoi.core.format.AppProfile
 import io.github.duwenji.yorisoi.core.format.Feature
 
 /**
- * CycleGuide as the ecosystem sees it (API-003 G-4; requirements F-26, F-32): a cycling companion that
+ * CycleGuide as the ecosystem sees it (API-CHANNEL-PACKAGE G-4; requirements F-26, F-32): a cycling companion that
  * reads a channel's guide and companion slots and its spot and point cues, and speaks. As the channel management system lists it
  * (yorisoi-console `ecosystem.ts`).
  */

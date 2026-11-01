@@ -125,7 +125,7 @@ class RideService : LifecycleService() {
             }
             local = app.local.startRide()?.also { feed -> lifecycleScope.launch { feed.start() } }
             if (app.settings.settings.value.developerMode) startDiagnostics(now)
-            // The lists, if a day has passed: at the start, never during the ride (API-002 取得の時期).
+            // The lists, if a day has passed: at the start, never during the ride (API-CHANNEL-LIST 取得の時期).
             app.channels.refreshIfDue()
             earphones.start()
             watchSpeech()

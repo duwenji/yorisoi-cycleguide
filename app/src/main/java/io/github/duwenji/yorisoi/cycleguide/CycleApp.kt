@@ -149,7 +149,7 @@ class CycleApp : Application() {
             scope = appScope,
             developerMode = developerMode,
         ) {
-            // Only the coarse region (3-letter geohashes, about 150km) leaves the location (API-004 P-6),
+            // Only the coarse region (3-letter geohashes, about 150km) leaves the location (API-MATERIALS P-6),
             // and only while riding: the app doesn't use the location otherwise.
             spots.location.value?.let { Regions.around(it.latitude, it.longitude) }
         }

@@ -50,7 +50,7 @@ import java.util.Locale
 
 // The studio on CycleGuide's screens (platform kit-studio README「画面」), shown only while stopped.
 
-/** What a line of the studio is, above its text: not the companion's own words (ADR-STUDIO S-1). */
+/** What a line of the studio is, above its text: not the companion's own words (ADR-MATERIALS D-38). */
 @Composable
 fun StudioLabel(reading: Reading) {
     Text(
@@ -123,7 +123,7 @@ fun StudioLineActions(reading: Reading, viewModel: StudioViewModel) {
     }
 }
 
-/** The button that places a note, stopped on a ride, where the device can write speech out (REQ-STUDIO F-1, F-2). */
+/** The button that places a note, stopped on a ride, where the device can write speech out (REQ-NOTES F-1, F-2). */
 @Composable
 fun NoteMicButton(viewModel: StudioViewModel, modifier: Modifier = Modifier) {
     if (!viewModel.canPlace) return

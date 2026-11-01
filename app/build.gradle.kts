@@ -32,7 +32,7 @@ android {
         // The operator's spot tiles (platform API-SPOT-TILES ST-1): every build uses the development
         // ones until production's are deployed.
         buildConfigField("String", "SPOT_TILES_URL", "\"https://ds73vvo5wv45e.cloudfront.net/\"")
-        // The studio (platform API-STUDIO ST-1): every build uses the development studio until
+        // The studio (platform API-LOCAL-MATERIALS ST-1): every build uses the development studio until
         // production's is deployed.
         buildConfigField("String", "STUDIO_URL", "\"https://x568icz881.execute-api.ap-northeast-1.amazonaws.com/api/\"")
     }

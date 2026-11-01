@@ -591,7 +591,7 @@ class RideService : LifecycleService() {
 
         private val _lastLine = MutableStateFlow<Line?>(null)
 
-        /** The last line said, with its credit when the AI wrote it (platform ADR-AI-ROLES H-15). */
+        /** The last line said, with its credit when the AI wrote it (platform AI-ROLES H-15). */
         val lastLine: StateFlow<Line?> = _lastLine.asStateFlow()
 
         private val _walked = MutableStateFlow<List<LatLon>>(emptyList())

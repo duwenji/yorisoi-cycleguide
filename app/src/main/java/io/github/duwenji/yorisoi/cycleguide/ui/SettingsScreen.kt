@@ -168,7 +168,7 @@ private fun ChannelSection(stations: List<Station>, current: Station, riding: Bo
 }
 
 /**
- * How the AI is reached (platform ADR-AI-RELAY): the operator's AI, or the rider's own key for a
+ * How the AI is reached (platform API-AI-RELAY): the operator's AI, or the rider's own key for a
  * service they choose, with its model and a daily limit. The key stays on the device, encrypted.
  */
 @OptIn(ExperimentalLayoutApi::class)

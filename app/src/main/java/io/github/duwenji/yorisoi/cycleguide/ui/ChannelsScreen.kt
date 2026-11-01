@@ -55,7 +55,7 @@ private val TIME = DateTimeFormatter.ofPattern("M/d HH:mm").withZone(ZoneId.syst
 /**
  * The channel lists the user added and the channels they deliver (requirements F-26, API-CHANNEL-LIST
  * 設定画面のリスト). Opened only outside a ride, from the settings. A channel taken in is used only
- * once the rider accepts how much it talks (platform ADR-004 H-9).
+ * once the rider accepts how much it talks (platform AI-ROLES H-9).
  */
 @Composable
 fun ChannelsScreen(app: CycleApp, onClose: () -> Unit) {
@@ -150,7 +150,7 @@ fun ChannelsScreen(app: CycleApp, onClose: () -> Unit) {
     }
 }
 
-/** How much the channel talks, before it is used (platform ADR-004 H-9). */
+/** How much the channel talks, before it is used (platform AI-ROLES H-9). */
 @Composable
 private fun UseDialog(station: Station, standard: Station, onUse: () -> Unit, onCancel: () -> Unit) {
     AlertDialog(

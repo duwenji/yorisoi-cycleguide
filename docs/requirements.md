@@ -13,7 +13,7 @@
 
 CycleGuide は、自転車で走る人のそばで、周りの見どころや安全の情報を声で伝えるアプリです。画面を見なくても使えることを前提にします。
 
-platform の ADR-ECOSYSTEM-PLATFORM は、2 本目のアプリをサイクリングの伴走（`cycle`）に決めています（E-23）。このアプリには 3 つの役目があります。
+platform の ECOSYSTEM は、2 本目のアプリをサイクリングの伴走（`cycle`）に決めています（E-23）。このアプリには 3 つの役目があります。
 
 1. 走る人に、散歩とは違う速さに合った伴走を届ける
 2. `cycle` の代表のアプリとして、管理システムで AI に話させる見本を作れるようにする（E-26）
@@ -44,21 +44,21 @@ platform の ADR-ECOSYSTEM-PLATFORM は、2 本目のアプリをサイクリン
 ## 対応元ID（トレーサビリティ）
 | 対応元ID | 内容 | 対応状況 |
 |---|---|---|
-| platform ADR-ECOSYSTEM-PLATFORM E-23 | 2 本目のアプリはサイクリングの伴走。スピーカー既定・背景音なし・走行中は画面を出さない | 本書の S-1〜S-4。スピーカーの扱いは D-7 で注意を促すまでに変更 |
-| platform ADR-ECOSYSTEM-PLATFORM E-26 | `cycle` の見本は代表のアプリで作る | 本書の F-30 |
-| platform ADR-ECOSYSTEM-PLATFORM T-2 | サイクリングのアプリを作り、合わなかった抽象を直す | 本書全体。時期は D-2 で変更 |
+| platform ECOSYSTEM E-23 | 2 本目のアプリはサイクリングの伴走。スピーカー既定・背景音なし・走行中は画面を出さない | 本書の S-1〜S-4。スピーカーの扱いは D-7 で注意を促すまでに変更 |
+| platform ECOSYSTEM E-26 | `cycle` の見本は代表のアプリで作る | 本書の F-30 |
+| platform ECOSYSTEM E-20 | 共通部分は 2 本目のアプリを作りながら直す | 本書全体 |
 
 ## 方針・決定事項
 
 | No. | 決定 | 理由 |
 |---|---|---|
 | D-1 | 名前は **CycleGuide**。リポジトリは `yorisoi-cycleguide`、`applicationId` は `io.github.duwenji.yorisoi.cycleguide`、platform の `AppIds` の値は `cycleguide` | SanpoGuide の命名（E-22）にそろえる |
-| D-2 | T-2（このアプリ）を T-1 より先に行う。platform の ADR の追従タスクの時期を書き直す | 見本が SanpoGuide 1 本のまま雛形を作ると、散歩向けの形が固まる（E-20） |
+| D-2 | このアプリを、新しいアプリの雛形（platform のエコシステム TODO）より先に作る | 見本が SanpoGuide 1 本のまま雛形を作ると、散歩向けの形が固まる（E-20） |
 | D-3 | 範囲は将来拡張まで含める。機能は公開の段階（1〜3）に分けて順に出す | 開発者の決定（2026-10-24）。段階を分けて、抽象を直す前に機能が膨らむのを抑える |
 | D-4 | SanpoGuide のアプリ側にあるコード（チャンネルの取り込み・運営の AI・素材提供者・設定など）は、CycleGuide で必要になったものから platform に移し、SanpoGuide もそれを使うように直す。写さない | E-4・E-20。コードを 2 つに増やさない |
 | D-5 | 走り方はプリセットとして持つ。プリセットは判定の値（範囲・間隔・話の長さ・施設の種類）をまとめたもの。既定はポタリング | 開発者の決定（既定はポタリング、設定で切り替え） |
 | D-6 | 話の長さは「動いている」「信号待ちほど止まっている」「休憩ほど止まっている」の 3 つで上限を変える | 走っている間は短く、止まったときに長く話すため |
-| D-7 | イヤホンとスピーカーの扱いは注意を促すまでにする。アプリは音の出先を変えない。ADR-ECOSYSTEM-PLATFORM E-23 の「既定はスピーカーで流す」を、この扱いに合わせて書き直す（X-3） | 開発者の決定（2026-10-24）。Android では、Bluetooth のイヤホンがつながると音はそちらに出る。法令の守り方はアプリ利用者が決めることで、アプリは知らせる役にとどめる |
+| D-7 | イヤホンとスピーカーの扱いは注意を促すまでにする。アプリは音の出先を変えない。ECOSYSTEM E-23 の「既定はスピーカーで流す」を、この扱いに合わせて書き直す（X-3） | 開発者の決定（2026-10-24）。Android では、Bluetooth のイヤホンがつながると音はそちらに出る。法令の守り方はアプリ利用者が決めることで、アプリは知らせる役にとどめる |
 
 ### 走り方のプリセット（最初の値の案）
 
@@ -222,7 +222,7 @@ platform の ADR-ECOSYSTEM-PLATFORM は、2 本目のアプリをサイクリン
 |---|---|---|---|
 | X-1 | platform core-format | `AppIds` に `cycleguide` を足す（マイナー版） | 段階 1 |
 | X-2 | platform kit-geo | 進行方向の前方を探す（F-2）。自転車のルート（U-3）。ルートに沿った取得（F-16）。標高（U-2） | 前方は段階 1、ほかは段階 3 |
-| X-3 | platform ADR-ECOSYSTEM-PLATFORM | T-1・T-2 の時期を入れ替える（D-2）。E-23 のスピーカーの扱いを書き直す（D-7） | 段階 1 の前 |
+| X-3 | platform ECOSYSTEM | T-1・T-2 の時期を入れ替える（D-2）。E-23 のスピーカーの扱いを書き直す（D-7） | 段階 1 の前 |
 | X-4 | platform（D-4） | SanpoGuide のアプリ側のコードのうち、CycleGuide で使うもの（チャンネルの取り込み・運営の AI・素材提供者・設定）を移す | 使う段階ごと |
 | X-5 | yorisoi-console | アプリの一覧（`packages/protocol` の ecosystem.ts）に cycleguide のプロファイルを足す。運営の AI の中継の受け付けるパッケージ（relay-config.ts）に足す。アプリごとの段階の版（`appStageVersions`）に足す | 段階 1 |
 | X-6 | yorisoi-console | 機械審査の AI に話させる見本は、今は SanpoGuide のプロンプトだけを使う。`cycle` のチャンネルは CycleGuide のプロンプト・パックで見本を作る（F-30・E-26） | 段階 2 |
@@ -243,6 +243,6 @@ platform の ADR-ECOSYSTEM-PLATFORM は、2 本目のアプリをサイクリン
 | R-5 | Google Play の個人の開発者アカウントでは、新しいアプリを製品版に出す前に、クローズド テスト（12 人以上・14 日）が要る | アカウントの種類と今の決まりを確かめ、段階 1 の予定に入れる |
 
 ## 関連ドキュメント・参照リンク
-- [platform ADR-ECOSYSTEM-PLATFORM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/decisions/ADR-ECOSYSTEM-PLATFORM.md)
+- [platform ECOSYSTEM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/overview/yorisoi-ecosystem.md)
 - [platform API-CHANNEL-PACKAGE](https://github.com/duwenji/yorisoi-platform/blob/main/docs/contracts/API-CHANNEL-PACKAGE.md)
 - [SanpoGuide](https://github.com/duwenji/yorisoi-sanpoguide)

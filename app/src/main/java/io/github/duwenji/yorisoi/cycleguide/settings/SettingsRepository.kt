@@ -32,7 +32,7 @@ data class RideSettings(
     val apiKeys: Map<Provider, String> = emptyMap(),
     val models: Map<Provider, String> = emptyMap(),
     val customBaseUrl: String = "",
-    /** How many times a day the user's own key may be called; null for no limit (platform ADR-AI-ROLES H-9). */
+    /** How many times a day the user's own key may be called; null for no limit (platform AI-ROLES H-9). */
     val dailyAiLimit: Int? = 100,
     /** The developer's detailed record of each ride (requirements F-29); turned on by tapping the version seven times. */
     val developerMode: Boolean = false,

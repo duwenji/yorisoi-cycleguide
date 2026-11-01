@@ -16,7 +16,7 @@ import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * A line to say, and whose words it is: the AI's carry a credit (platform ADR-AI-ROLES H-15), the
+ * A line to say, and whose words it is: the AI's carry a credit (platform AI-ROLES H-15), the
  * app's fixed ones none, and people's own words are a studio or a note ([local], platform kit-local-materials).
  */
 data class Line(val text: String, val credit: String? = null, val local: Reading? = null)

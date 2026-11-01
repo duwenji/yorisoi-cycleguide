@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 // CycleGuide's prompt pack: the app's prompt files, its built-in channels and the review samples. Plain JVM so the
 // channel management system renders exactly the prompts the app sends (platform
-// ADR-ECOSYSTEM-PLATFORM E-18, E-26: the representative app for `cycle`).
+// ECOSYSTEM E-18, E-26: the representative app for `cycle`).
 plugins {
     alias(libs.plugins.kotlin.jvm)
     `maven-publish`

@@ -5,7 +5,7 @@
 | 対象 | CycleGuide（yorisoi-cycleguide）の構造と、platform・管理システムの変更 |
 | 読む人 | アプリ開発者 |
 | 状態 | 設計（承認済み。段階 1・2 は実装済み、段階 3 は未着手） |
-| 関連 | [要件定義](requirements.md)、[platform ADR-ECOSYSTEM-PLATFORM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/decisions/ADR-ECOSYSTEM-PLATFORM.md)、[SanpoGuide の構造図](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/architecture.md) |
+| 関連 | [要件定義](requirements.md)、[platform ECOSYSTEM](https://github.com/duwenji/yorisoi-platform/blob/main/docs/overview/yorisoi-ecosystem.md)、[SanpoGuide の構造図](https://github.com/duwenji/yorisoi-sanpoguide/blob/main/docs/architecture.md) |
 
 SanpoGuide と同じ作りを基本にします。DI ライブラリは使わず、`CycleApp.onCreate()` が共有部品を作り、画面と常駐のサービス（`RideService`）がそれを使います。散歩と違うのは、主に次の 4 つです。
 
@@ -51,7 +51,7 @@ flowchart LR
   RideService --> EarphoneNotice & MediaButtons
 ```
 
-`RideService` が中心です。位置が来るたびと一定の間隔で `maybeTalk()` を呼び、そのときの状況（`RideSituation`）を集めて `RideDecider` に渡します。`RideDecider` は platform の `kit-companion` の `TalkEngine` に、ルールの並びを渡すだけです（ADR-ECOSYSTEM-PLATFORM E-7）。
+`RideService` が中心です。位置が来るたびと一定の間隔で `maybeTalk()` を呼び、そのときの状況（`RideSituation`）を集めて `RideDecider` に渡します。`RideDecider` は platform の `kit-companion` の `TalkEngine` に、ルールの並びを渡すだけです（ECOSYSTEM E-7）。
 
 ## 図 2 · 走行中の判定
 
@@ -145,7 +145,7 @@ flowchart LR
 | きっかけ（F-32） | `kit-channel` の `CueFinder`（当たりの判定と `repeat` の回数。回数は `files/cues.json`）と `CuePresenter` を使います。`CuePresenter` には出す見せ方を `{speak}` だけ渡し、ほかの見せ方の素材は作りません（X-7。カードに AI の解説を指していても AI を呼ばない）。読み上げに使うのは、最初の読み上げの見せ方の、最初の文字の素材です。組み込みの素材提供者は `builtin:ai-guide`（`Narrator.spot`。依頼の `grounding` をそのまま資料にする）と `builtin:fallback-text`（定型の見どころの文）だけで、ほかの組み込み（写真・背景音・雰囲気の絵・話しかけ）は持たないので、候補の次に進みます。走行の様子（`RideSituation`。走っているか・いまの上限の字数）は `Situation` で渡し、`builtin:ai-guide` はその字数で頼みます |
 | スポットのきっかけ（F-32・ルール ④） | `RideService` が前方の見どころごとに、名前・OSM の ID で指すきっかけがあるかを見て `AheadSpot.cued` に入れます。ルール ④ は、きっかけで指された見どころを、走り方の見どころの大きさ（`spotScale`）と飛ばす種類にかけずに選び、同じ距離なら先に選びます（種類で指すきっかけ `anySpot` は選び方を変えない）。話すときに `CueFinder.spot` が当たれば、そのきっかけの読み上げを話し、当たらない（回数を使い切った）か素材がなければ、今までどおり `Narrator.spot` です。文が走行中の上限を超えたら、今の見どころと同じく `DeferredTalk` に取っておきます。間に合わずに取っておいた見どころも、止まったときにきっかけの文を話します。回数は、きっかけの文を作ったときに数えます（その走行では試し直さない） |
 | 地点のきっかけ（F-32・ルール ④′） | `RideService` が位置の更新ごとに `CueFinder.point` で、いる地点のきっかけを探し、`RideSituation.pointCue` に入れます。ルール ④′ は `NOT_QUIET`・`SPOT_GAP`・`NOT_SWITCHED` をかけ、走っていても止まっていても話します（ルール ④ のあと）。上限を超える文は `DeferredTalk` に取っておきます。`DeferredTalk` は見どころ（`Poi`）の代わりに、名前と位置を持つ形にします（地点のきっかけの名前はチャンネルの名前）。`builtin:ai-guide` が話すのは、地点の中の見どころのうち、その走行でまだ話していないもので、情報の多いもの（`Poi.notability`）、同じなら地点の中心に近いものです。ない場合は話しません。地点の話は、履歴の「話した見どころ」に入れません |
-| チャンネルの画面（F-20・F-26） | 設定の「チャンネル」で、組み込みと取り込んだチャンネルから選びます（走行中は変えられません）。`ChannelsScreen`（リストの追加・チャンネルの取り込みと削除・通報）は SanpoGuide の画面を元に、このアプリで書きます（画面はアプリに置く、E-4）。走行の外で、開発者モードのときだけ開けます（SanpoGuide と同じ。エコシステムのリストが公開されるまで）。取り込んだチャンネルは、話す量を見せて利用者が「使う」を選んでから使います（platform ADR-AI-ROLES H-9）。試用チケットはまだ読めません |
+| チャンネルの画面（F-20・F-26） | 設定の「チャンネル」で、組み込みと取り込んだチャンネルから選びます（走行中は変えられません）。`ChannelsScreen`（リストの追加・チャンネルの取り込みと削除・通報）は SanpoGuide の画面を元に、このアプリで書きます（画面はアプリに置く、E-4）。走行の外で、開発者モードのときだけ開けます（SanpoGuide と同じ。エコシステムのリストが公開されるまで）。取り込んだチャンネルは、話す量を見せて利用者が「使う」を選んでから使います（platform AI-ROLES H-9）。試用チケットはまだ読めません |
 | プロンプト・パックの公開（F-30） | `:prompts` を GitHub Packages に公開します（`io.github.duwenji.yorisoi.cycleguide:prompts`、版は `cycleguidePromptsVersion`）。審査の見本（`ReviewSamples`）を足し、`cycle` のチャンネルを、このアプリが送るのと同じプロンプトで組み立てます |
 | 審査の見本（X-6） | yorisoi-console の validator が、SanpoGuide のパックと CycleGuide のパックの両方を使い、チャンネルの `activities` で選びます（`walk` は SanpoGuide、`cycle` は CycleGuide。両方を含むときは両方の見本）。どちらも含まないときだけ `noRepresentativeApp` を返します（AC-23） |
 
@@ -160,7 +160,7 @@ flowchart LR
 
 ### その場の素材（スタジオ・一言。platform REQ-STUDIO・REQ-NOTES）
 
-部品は platform の kit-local-materials（[API-LOCAL-MATERIALS](https://github.com/duwenji/yorisoi-platform/blob/main/docs/contracts/API-LOCAL-MATERIALS.md)）。運営の AI の中継が使えるときだけ動きます。どちらも素材の種類で、出し方はチャンネルのきっかけが決めます（platform [ADR-MATERIALS](https://github.com/duwenji/yorisoi-platform/blob/main/docs/decisions/ADR-MATERIALS.md) D-37・D-45〜D-48）。
+部品は platform の kit-local-materials（[API-LOCAL-MATERIALS](https://github.com/duwenji/yorisoi-platform/blob/main/docs/contracts/API-LOCAL-MATERIALS.md)）。運営の AI の中継が使えるときだけ動きます。どちらも素材の種類で、出し方はチャンネルのきっかけが決めます（platform [MATERIALS](https://github.com/duwenji/yorisoi-platform/blob/main/docs/overview/materials.md) D-37・D-45〜D-48）。
 
 | 部品 | 設計 |
 |---|---|

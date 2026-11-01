@@ -40,9 +40,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.duwenji.yorisoi.kit.studio.NoteTtl
-import io.github.duwenji.yorisoi.kit.studio.Reading
-import io.github.duwenji.yorisoi.kit.studio.ReportReason
+import io.github.duwenji.yorisoi.kit.local.NoteTtl
+import io.github.duwenji.yorisoi.kit.local.Reading
+import io.github.duwenji.yorisoi.kit.local.ReportReason
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -56,7 +56,7 @@ fun StudioLabel(reading: Reading) {
     Text(
         when (reading) {
             is Reading.OfNote -> "一言（この辺りを通った人）"
-            is Reading.OfPlacement -> "お知らせ（${reading.placement.providerName}）"
+            is Reading.OfStudio -> "お知らせ（${reading.studio.providerName}）"
         },
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.tertiary,
@@ -72,9 +72,9 @@ private val REASONS = listOf(
     ReportReason.OTHER to "そのほか",
 )
 
-/** What the user can do with a line of the studio: like, report and block a note; open and report a placement. */
+/** What the user can do with a line of the studio: like, report and block a note; open and report a studio. */
 @Composable
-fun StudioLineActions(reading: Reading, viewModel: StudioViewModel) {
+fun StudioLineActions(reading: Reading, viewModel: LocalViewModel) {
     var reporting by remember { mutableStateOf(false) }
     var blocking by remember { mutableStateOf(false) }
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -84,7 +84,7 @@ fun StudioLineActions(reading: Reading, viewModel: StudioViewModel) {
                 TextButton(onClick = { viewModel.like(reading); liked = true }, enabled = !liked) { Text(if (liked) "いいね済み" else "いいね") }
                 TextButton(onClick = { blocking = true }) { Text("ブロック") }
             }
-            is Reading.OfPlacement -> TextButton(onClick = { viewModel.open(reading) }) { Text(if (reading.audio != null) "音声を聞く" else "開いた") }
+            is Reading.OfStudio -> TextButton(onClick = { viewModel.open(reading) }) { Text(if (reading.audio != null) "音声を聞く" else "開いた") }
         }
         TextButton(onClick = { reporting = true }) { Text("通報") }
     }
@@ -125,7 +125,7 @@ fun StudioLineActions(reading: Reading, viewModel: StudioViewModel) {
 
 /** The button that places a note, stopped on a ride, where the device can write speech out (REQ-NOTES F-1, F-2). */
 @Composable
-fun NoteMicButton(viewModel: StudioViewModel, modifier: Modifier = Modifier) {
+fun NoteMicButton(viewModel: LocalViewModel, modifier: Modifier = Modifier) {
     if (!viewModel.canPlace) return
     val context = LocalContext.current
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if (granted) viewModel.startNote() }
@@ -144,7 +144,7 @@ fun NoteMicButton(viewModel: StudioViewModel, modifier: Modifier = Modifier) {
 
 /** The dialogs of placing a note: the terms, listening, and checking what was heard (sent after 3 s untouched). */
 @Composable
-fun NoteFlow(viewModel: StudioViewModel) {
+fun NoteFlow(viewModel: LocalViewModel) {
     val step by viewModel.step.collectAsStateWithLifecycle()
     val uri = LocalUriHandler.current
     when (val s = step) {
@@ -184,7 +184,7 @@ fun NoteFlow(viewModel: StudioViewModel) {
 }
 
 @Composable
-private fun ConfirmNote(step: NoteStep.Confirm, viewModel: StudioViewModel) {
+private fun ConfirmNote(step: NoteStep.Confirm, viewModel: LocalViewModel) {
     var text by remember(step) { mutableStateOf(step.text) }
     var ttl by remember(step) { mutableStateOf(NoteTtl.DAY) }
     var withSpot by remember(step) { mutableStateOf(step.spotName != null) }
@@ -233,11 +233,33 @@ private fun ConfirmNote(step: NoteStep.Confirm, viewModel: StudioViewModel) {
 }
 
 /**
- * The studio's part of the settings (REQ-STUDIO D-12, F-5, F-23): what is read out, the user's own
- * notes and blocks. Applied at once, not with the screen's save.
+ * The studio's part of the settings (REQ-STUDIO D-12): whether shops' and places' announcements are
+ * read out. Applied at once, not with the screen's save.
  */
 @Composable
-fun StudioSettingsPart(viewModel: StudioViewModel) {
+fun StudioSettingsPart(viewModel: LocalViewModel) {
+    if (!viewModel.available) {
+        Text("このビルドでは使えません（運営の AI の中継がありません）", style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    Text(
+        "走行中、運営が認めた店・地域のお知らせを読み上げます。AI の話とは別に、出した人の名前を言ってから読みます。いつ読み上げるかは使っているチャンネルが決め、チャンネルによっては読み上げません。変えるとすぐに反映します。",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    ListenSwitch(
+        "スタジオを聞く", "店・地域のお知らせ（1 時間に 2 件まで）", settings.listenStudios, viewModel::setListenStudios,
+        "スタジオの読み上げ",
+        "走行中、運営が認めた店・地域のお知らせが読み上げられます。運営の AI と通報で確かめていますが、中身は出した人のものです。読み上げのあと、通報ができます。",
+    )
+}
+
+/**
+ * The notes' part of the settings (REQ-NOTES D-12, F-5, F-23): whether notes are read out, the
+ * user's own notes and blocks. Applied at once, not with the screen's save.
+ */
+@Composable
+fun NotesSettingsPart(viewModel: LocalViewModel) {
     if (!viewModel.available) {
         Text("このビルドでは使えません（運営の AI の中継がありません）", style = MaterialTheme.typography.bodySmall)
         return
@@ -246,27 +268,15 @@ fun StudioSettingsPart(viewModel: StudioViewModel) {
     val mine by viewModel.mine.collectAsStateWithLifecycle()
     val blocks by viewModel.blocks.collectAsStateWithLifecycle()
     val uri = LocalUriHandler.current
-    var explain by remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
-    // Nothing is read out before the user knows what it is (REQ-STUDIO D-12).
-    fun turnOn(apply: (Boolean) -> Unit) = if (settings.explained) apply(true) else explain = apply
-
     Text(
-        "走行中、この辺りを通った人が残した一言や、店・地域のお知らせを、話の合間に読み上げます。AI の話とは別に、出どころを言ってから読みます。一言を置く・いいね・通報・ブロックは、止まっているときにできます。どちらも変えるとすぐに反映します。",
+        "走行中、この辺りを通った人が残した一言を読み上げます。AI の話とは別に、出どころを言ってから読みます。いつ読み上げるかは使っているチャンネルが決め、チャンネルによっては読み上げません。一言を置く・いいね・通報・ブロックは、止まっているときにできます。変えるとすぐに反映します。",
         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
-    StudioSwitch("一言を聞く", "知らない人の一言（1 時間に 10 件まで）", settings.listenNotes) { on -> if (on) turnOn(viewModel::setListenNotes) else viewModel.setListenNotes(false) }
-    StudioSwitch("お知らせを聞く", "運営が認めた店・地域のお知らせ（1 時間に 2 件まで）", settings.listenPlacements) { on -> if (on) turnOn(viewModel::setListenPlacements) else viewModel.setListenPlacements(false) }
-    explain?.let { apply ->
-        AlertDialog(
-            onDismissRequest = { explain = null },
-            title = { Text("スタジオの読み上げ") },
-            text = {
-                Text("走行中、その場所に置かれた知らない人の一言や、店・地域のお知らせが読み上げられます。運営の AI と通報で確かめていますが、中身は置いた人・出した人のものです。読み上げのあと、通報やブロックができます。")
-            },
-            confirmButton = { TextButton(onClick = { apply(true); explain = null }) { Text("聞く") } },
-            dismissButton = { TextButton(onClick = { explain = null }) { Text("やめる") } },
-        )
-    }
+    ListenSwitch(
+        "一言を聞く", "知らない人の一言（1 時間に 10 件まで）", settings.listenNotes, viewModel::setListenNotes,
+        "一言の読み上げ",
+        "走行中、その場所に置かれた知らない人の一言が読み上げられます。運営の AI と通報で確かめていますが、中身は置いた人のものです。読み上げのあと、通報やブロックができます。",
+    )
 
     val format = remember { SimpleDateFormat("M/d H:mm", Locale.JAPAN) }
     Text("自分の一言", style = MaterialTheme.typography.labelLarge)
@@ -306,16 +316,33 @@ fun StudioSettingsPart(viewModel: StudioViewModel) {
             }
         }
     }
-    TextButton(onClick = { uri.openUri(StudioViewModel.TERMS_URL) }) { Text("一言の利用規約") }
+    TextButton(onClick = { uri.openUri(LocalViewModel.TERMS_URL) }) { Text("一言の利用規約") }
 }
 
+/**
+ * A switch for listening to one kind. Turning it on first says what will be read out (REQ-STUDIO
+ * and REQ-NOTES D-12): each time, as each kind has its own words.
+ */
 @Composable
-private fun StudioSwitch(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().toggleable(checked, role = Role.Switch, onValueChange = onChange), verticalAlignment = Alignment.CenterVertically) {
+private fun ListenSwitch(title: String, description: String, checked: Boolean, set: (Boolean) -> Unit, explainTitle: String, explainText: String) {
+    var explaining by remember { mutableStateOf(false) }
+    Row(
+        Modifier.fillMaxWidth().toggleable(checked, role = Role.Switch, onValueChange = { on -> if (on) explaining = true else set(false) }),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyMedium)
             Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = null)
+    }
+    if (explaining) {
+        AlertDialog(
+            onDismissRequest = { explaining = false },
+            title = { Text(explainTitle) },
+            text = { Text(explainText) },
+            confirmButton = { TextButton(onClick = { set(true); explaining = false }) { Text("聞く") } },
+            dismissButton = { TextButton(onClick = { explaining = false }) { Text("やめる") } },
+        )
     }
 }

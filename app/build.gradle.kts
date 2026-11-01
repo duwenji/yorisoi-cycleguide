@@ -32,9 +32,9 @@ android {
         // The operator's spot tiles (platform API-SPOT-TILES ST-1): every build uses the development
         // ones until production's are deployed.
         buildConfigField("String", "SPOT_TILES_URL", "\"https://ds73vvo5wv45e.cloudfront.net/\"")
-        // The studio (platform API-LOCAL-MATERIALS ST-1): every build uses the development studio until
-        // production's is deployed.
-        buildConfigField("String", "STUDIO_URL", "\"https://x568icz881.execute-api.ap-northeast-1.amazonaws.com/api/\"")
+        // The local materials, studios and notes (platform API-LOCAL-MATERIALS ST-1): every build uses the
+        // development ones until production's are deployed.
+        buildConfigField("String", "LOCAL_MATERIALS_URL", "\"https://nngy8570o8.execute-api.ap-northeast-1.amazonaws.com/api/\"")
     }
 
     signingConfigs {
@@ -106,8 +106,8 @@ dependencies {
     implementation(libs.yorisoi.kit.llm)
     // The ecosystem's green, the bar on top of the screens and the launcher icon's green, shared with SanpoGuide.
     implementation(libs.yorisoi.kit.ui)
-    // The studio: notes and placements near the ride (platform REQ-STUDIO, kit-studio).
-    implementation(libs.yorisoi.kit.studio)
+    // The studios and notes near the ride, as built-in producers for the channel's cues (platform kit-local-materials).
+    implementation(libs.yorisoi.kit.local.materials)
     // kit-channel's OkHttpProviderHttp and TinkEd25519 (third-party channels) need them.
     implementation(libs.okhttp)
     implementation(libs.tink.android)

@@ -23,7 +23,7 @@ import io.github.duwenji.yorisoi.kit.geo.Trip
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.github.duwenji.yorisoi.cycleguide.settings.SettingsRepository
-import io.github.duwenji.yorisoi.cycleguide.studio.StudioHub
+import io.github.duwenji.yorisoi.cycleguide.local.LocalHub
 import io.github.duwenji.yorisoi.cycleguide.style.Amenity
 import io.github.duwenji.yorisoi.cycleguide.style.StyleItem
 import io.github.duwenji.yorisoi.kit.channel.StationRepository
@@ -39,6 +39,8 @@ import io.github.duwenji.yorisoi.kit.geo.SpotCache
 import io.github.duwenji.yorisoi.kit.geo.SpotRepository
 import io.github.duwenji.yorisoi.kit.geo.SpotTiles
 import io.github.duwenji.yorisoi.kit.geo.weather.WeatherClient
+import io.github.duwenji.yorisoi.kit.local.NoteProducer
+import io.github.duwenji.yorisoi.kit.local.StudioProducer
 import io.github.duwenji.yorisoi.kit.llm.AiGateway
 import io.github.duwenji.yorisoi.kit.llm.AiUsage
 import io.github.duwenji.yorisoi.kit.llm.OperatorAi
@@ -93,8 +95,8 @@ class CycleApp : Application() {
     lateinit var ways: FrequentWayStore
         private set
 
-    /** Notes and placements near the ride (platform REQ-STUDIO, kit-studio). */
-    lateinit var studio: StudioHub
+    /** The studios and notes near the ride (platform kit-local-materials). */
+    lateinit var local: LocalHub
         private set
     val weather = WeatherClient()
     val osmTiles = OsmTiles()
@@ -127,7 +129,10 @@ class CycleApp : Application() {
             Prompts.fromResources(), ai::generate, aiName = { settings.settings.value.connection.name },
             onError = { Log.w("Narrator", "No line from the AI", it) },
         )
-        cues = RideCues(narrator, CueFinder(FileCueMemory(File(filesDir, "cues.json")))) { message, e ->
+        cues = RideCues(
+            narrator, CueFinder(FileCueMemory(File(filesDir, "cues.json"))),
+            listOf(StudioProducer { local.feed.value }, NoteProducer { local.feed.value }),
+        ) { message, e ->
             Log.w("RideCues", message, e)
             diagnostics.event("producer", "message" to message, "error" to e?.toString())
         }
@@ -167,7 +172,7 @@ class CycleApp : Application() {
         )
         WayPrefetchWorker.scheduleDaily(this)
         speaker = Speaker(this)
-        studio = StudioHub(this, relay, BuildConfig.STUDIO_URL, speaker.speaking)
+        local = LocalHub(this, relay, BuildConfig.LOCAL_MATERIALS_URL, speaker.speaking)
         getSystemService(NotificationManager::class.java).apply {
             createNotificationChannel(NotificationChannel(CHANNEL_RIDE, "走行中", NotificationManager.IMPORTANCE_LOW))
         }

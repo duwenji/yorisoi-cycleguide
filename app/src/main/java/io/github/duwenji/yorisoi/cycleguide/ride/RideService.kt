@@ -63,8 +63,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
-import io.github.duwenji.yorisoi.kit.studio.Reading
-import io.github.duwenji.yorisoi.kit.studio.StudioFeed
+import io.github.duwenji.yorisoi.kit.local.Reading
+import io.github.duwenji.yorisoi.kit.local.LocalFeed
 import kotlinx.coroutines.CancellationException
 import java.io.IOException
 import java.util.Locale
@@ -87,11 +87,11 @@ class RideService : LifecycleService() {
     private var weatherFetchedAt = 0L
     private var earphoneNoticed = false
 
-    /** The studio's notes and placements near this ride (platform kit-studio); null without the studio. */
-    private var studio: StudioFeed? = null
+    /** The studios and notes near this ride (platform kit-local-materials); null without the operator's relay. */
+    private var local: LocalFeed? = null
 
-    /** When the studio last said something; it waits [STUDIO_GAP_MS] after any line. */
-    private var studioSaidAt = 0L
+    /** When people's own words were last said; they wait [LOCAL_GAP_MS] after any line. */
+    private var localSaidAt = 0L
 
     /** The ride is ending: the look back is being written, and the companion says nothing else. */
     private var finishing = false
@@ -123,7 +123,7 @@ class RideService : LifecycleService() {
                 // Read while the ride starts; until then, nothing was said before.
                 lifecycleScope.launch { it.past = app.pastTalks(now) }
             }
-            studio = app.studio.startRide()?.also { feed -> lifecycleScope.launch { feed.start() } }
+            local = app.local.startRide()?.also { feed -> lifecycleScope.launch { feed.start() } }
             if (app.settings.settings.value.developerMode) startDiagnostics(now)
             // The lists, if a day has passed: at the start, never during the ride (API-002 取得の時期).
             app.channels.refreshIfDue()
@@ -145,9 +145,9 @@ class RideService : LifecycleService() {
         fused.removeLocationUpdates(callback)
         earphones.stop()
         // What was heard and liked is sent once the service has gone.
-        studio?.let { feed -> app.appScope.launch { feed.finish() } }
-        studio = null
-        app.studio.endRide()
+        local?.let { feed -> app.appScope.launch { feed.finish() } }
+        local = null
+        app.local.endRide()
         session = null
         app.heading = null
         _state.value = null
@@ -285,13 +285,13 @@ class RideService : LifecycleService() {
                 )
             }
             if (weatherFetchedAt == 0L) refreshWeather(location)
-            studio?.let { feed ->
+            local?.let { feed ->
                 try {
                     feed.onLocation(location.latitude, location.longitude)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    Log.w(TAG, "Studio fetch failed", e)
+                    Log.w(TAG, "Local materials fetch failed", e)
                 }
             }
             maybeTalk()
@@ -357,7 +357,7 @@ class RideService : LifecycleService() {
                     "ahead" to ahead.size, "deferred" to s.deferred.size,
                 )
             }
-            if (decision == RideDecision.Nothing && !situation.quiet) maybeStudio(s, state, now) else carryOut(s, decision, now)
+            if (decision == RideDecision.Nothing && !situation.quiet) idleCues(s, station, state, now, maxCharsNow()) else carryOut(s, decision, now)
         } finally {
             talking.unlock()
         }
@@ -423,19 +423,18 @@ class RideService : LifecycleService() {
     }
 
     /**
-     * When the ride has nothing to say, a note or placement of the studio near the rider, if any
-     * (platform REQ-STUDIO D-10, D-13): read while moving too, never right after a line, and a
-     * placement's audio after its words.
+     * When the ride has nothing to say, the channel's idle cues in turn: a studio or a note around
+     * the rider (platform REQ-STUDIO・REQ-NOTES D-13): read while moving too, never right after a line.
      */
-    private suspend fun maybeStudio(s: RideSession, state: MotionState, now: Long) {
-        val feed = studio ?: return
-        if (now - maxOf(s.lastSpokeAt, studioSaidAt) < STUDIO_GAP_MS) return
-        val reading = feed.next() ?: return
-        studioSaidAt = now
-        app.diagnostics.event("studio", "kind" to if (reading is Reading.OfNote) "note" else "placement")
-        say(Line(reading.spoken, studio = reading), state)
-        val audio = (reading as? Reading.OfPlacement)?.audio ?: return
-        lifecycleScope.launch { app.studio.player.play(audio) }
+    private suspend fun idleCues(s: RideSession, station: Station, state: MotionState, now: Long, maxChars: Int) {
+        if (now - maxOf(s.lastSpokeAt, localSaidAt) < LOCAL_GAP_MS) return
+        for (fire in app.cues.idle(station, s.shownCues, now)) {
+            val line = app.cues.speak(fire, station, RideContext(state == MotionState.MOVING, maxChars)) ?: continue
+            localSaidAt = now
+            app.diagnostics.event("local", "kind" to if (line.local is Reading.OfNote) "note" else "studio")
+            say(line, state)
+            return
+        }
     }
 
     /** The fixed line for a spot talked about on an earlier ride (REQ-FREQUENT-WAYS F-11); null for a new one. */
@@ -523,6 +522,7 @@ class RideService : LifecycleService() {
         session?.remember(line.text)
         _lastLine.value = line
         notify(rideNotification(state, line.text))
+        (line.local as? Reading.OfStudio)?.audio?.let { audio -> lifecycleScope.launch { app.local.player.play(audio) } }
     }
 
     private suspend fun refreshWeather(location: Location) {
@@ -576,8 +576,8 @@ class RideService : LifecycleService() {
         private const val RECAP_TIMEOUT_MS = 15_000L
         // Often enough that the lookahead for weather changes stays current.
         private const val WEATHER_REFRESH_MS = 15 * 60_000L
-        // The studio waits this long after the companion's last line (kit-studio README 未決事項 3).
-        private const val STUDIO_GAP_MS = 60_000L
+        // People's own words wait this long after the companion's last line.
+        private const val LOCAL_GAP_MS = 60_000L
 
         private val _state = MutableStateFlow<MotionState?>(null)
 

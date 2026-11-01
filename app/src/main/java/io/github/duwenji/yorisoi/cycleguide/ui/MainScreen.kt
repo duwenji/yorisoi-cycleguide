@@ -75,7 +75,7 @@ fun MainScreen(
     /** The map while stopped on a ride, or of the last ride outside one; null when there is none to show. */
     map: (@Composable (Modifier) -> Unit)? = null,
     /** The studio: what can be done with its line, and placing a note; null without the studio. */
-    studio: StudioViewModel? = null,
+    studio: LocalViewModel? = null,
 ) {
     // The rules on phones and earphones, before the first ride (requirements S-3, S-5, AC-8).
     var noticing by remember { mutableStateOf(false) }
@@ -146,13 +146,13 @@ private fun StatusChip(icon: ImageVector, text: String, onClick: () -> Unit) {
 
 /** What the companion said last, with its credit; a line of the studio with what to do with it. */
 @Composable
-private fun LastLineCard(line: Line, studio: StudioViewModel?, modifier: Modifier = Modifier) {
+private fun LastLineCard(line: Line, studio: LocalViewModel?, modifier: Modifier = Modifier) {
     Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.medium) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            line.studio?.let { StudioLabel(it) }
+            line.local?.let { StudioLabel(it) }
             Text(line.text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
             line.credit?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer) }
-            if (studio != null) line.studio?.let { StudioLineActions(it, studio) }
+            if (studio != null) line.local?.let { StudioLineActions(it, studio) }
         }
     }
 }

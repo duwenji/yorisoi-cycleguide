@@ -76,7 +76,7 @@ fun SettingsScreen(
     onOpenChannels: () -> Unit,
     /** Opens the frequent ways; null during a ride (S-2). */
     onOpenWays: (() -> Unit)?,
-    studio: StudioViewModel,
+    studio: LocalViewModel,
 ) {
     val values = settings.values
     Scaffold(topBar = { ScreenBar("設定", onBack = onClose) }) { padding ->
@@ -315,12 +315,16 @@ private fun WaysSection(settings: RideSettings, onChange: ((RideSettings) -> Rid
     }
 }
 
-/** Notes and placements read out on the ride (platform REQ-STUDIO); applied at once. */
+/** The studios and notes read out on the ride (platform REQ-STUDIO, REQ-NOTES), each its own kind; applied at once. */
 @Composable
-private fun StudioSection(studio: StudioViewModel) {
+private fun StudioSection(studio: LocalViewModel) {
     Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("スタジオ", style = MaterialTheme.typography.titleMedium)
+        Text("スタジオ（店や地域のお知らせ）", style = MaterialTheme.typography.titleMedium)
         StudioSettingsPart(studio)
+    }
+    Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("一言", style = MaterialTheme.typography.titleMedium)
+        NotesSettingsPart(studio)
     }
 }
 

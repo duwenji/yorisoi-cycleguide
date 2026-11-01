@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
                 var showWays by rememberSaveable { mutableStateOf(false) }
                 val ways by app.ways.ways.collectAsStateWithLifecycle()
                 val stations by app.stations.list.collectAsStateWithLifecycle()
-                val studio: StudioViewModel = viewModel()
+                val studio: LocalViewModel = viewModel()
                 // Placing a note is for standing still: moving off drops it (platform kit-studio README).
                 LaunchedEffect(state) { if (state == MotionState.MOVING) studio.cancelNote() }
                 if (state != MotionState.MOVING) NoteFlow(studio)

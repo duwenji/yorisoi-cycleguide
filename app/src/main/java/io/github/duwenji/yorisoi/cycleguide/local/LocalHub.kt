@@ -1,24 +1,24 @@
-package io.github.duwenji.yorisoi.cycleguide.studio
+package io.github.duwenji.yorisoi.cycleguide.local
 
 import android.content.Context
 import io.github.duwenji.yorisoi.kit.geo.Geohash
 import io.github.duwenji.yorisoi.kit.llm.RelayClient
-import io.github.duwenji.yorisoi.kit.studio.Block
-import io.github.duwenji.yorisoi.kit.studio.ClipCache
-import io.github.duwenji.yorisoi.kit.studio.ClipPlayer
-import io.github.duwenji.yorisoi.kit.studio.MyNote
-import io.github.duwenji.yorisoi.kit.studio.Note
-import io.github.duwenji.yorisoi.kit.studio.NoteRecognizer
-import io.github.duwenji.yorisoi.kit.studio.NoteTtl
-import io.github.duwenji.yorisoi.kit.studio.PlacedNote
-import io.github.duwenji.yorisoi.kit.studio.Reading
-import io.github.duwenji.yorisoi.kit.studio.RelayTokens
-import io.github.duwenji.yorisoi.kit.studio.ReportReason
-import io.github.duwenji.yorisoi.kit.studio.StudioClient
-import io.github.duwenji.yorisoi.kit.studio.StudioFeed
-import io.github.duwenji.yorisoi.kit.studio.StudioMemory
-import io.github.duwenji.yorisoi.kit.studio.StudioSettingsStore
-import io.github.duwenji.yorisoi.kit.studio.Terms
+import io.github.duwenji.yorisoi.kit.local.Block
+import io.github.duwenji.yorisoi.kit.local.ClipCache
+import io.github.duwenji.yorisoi.kit.local.ClipPlayer
+import io.github.duwenji.yorisoi.kit.local.MyNote
+import io.github.duwenji.yorisoi.kit.local.Note
+import io.github.duwenji.yorisoi.kit.local.NoteRecognizer
+import io.github.duwenji.yorisoi.kit.local.NoteTtl
+import io.github.duwenji.yorisoi.kit.local.PlacedNote
+import io.github.duwenji.yorisoi.kit.local.Reading
+import io.github.duwenji.yorisoi.kit.local.RelayTokens
+import io.github.duwenji.yorisoi.kit.local.ReportReason
+import io.github.duwenji.yorisoi.kit.local.LocalClient
+import io.github.duwenji.yorisoi.kit.local.LocalFeed
+import io.github.duwenji.yorisoi.kit.local.LocalMemory
+import io.github.duwenji.yorisoi.kit.local.LocalSettingsStore
+import io.github.duwenji.yorisoi.kit.local.Terms
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,17 +30,17 @@ import java.time.Instant
  * the ride in progress, and what the screens do with notes and placements. Without the operator's
  * relay there is no studio ([available] is false).
  */
-class StudioHub(context: Context, relay: RelayClient?, baseUrl: String, speaking: StateFlow<Boolean>) {
-    val settings = StudioSettingsStore(context)
-    private val memory = StudioMemory(File(context.filesDir, "studio.json"))
-    private val client: StudioClient? = relay?.let { StudioClient(baseUrl, RelayTokens(it)) }
+class LocalHub(context: Context, relay: RelayClient?, baseUrl: String, speaking: StateFlow<Boolean>) {
+    val settings = LocalSettingsStore(context)
+    private val memory = LocalMemory(File(context.filesDir, "studio.json"))
+    private val client: LocalClient? = relay?.let { LocalClient(baseUrl, RelayTokens(it)) }
     private val clips = ClipCache(File(context.cacheDir, "studio-clips"))
     val player = ClipPlayer(speaking)
     val recognizer = NoteRecognizer(context)
 
-    private val _feed = MutableStateFlow<StudioFeed?>(null)
+    private val _feed = MutableStateFlow<LocalFeed?>(null)
     /** The feed of the ride in progress; null outside a ride. */
-    val feed: StateFlow<StudioFeed?> = _feed.asStateFlow()
+    val feed: StateFlow<LocalFeed?> = _feed.asStateFlow()
 
     val available: Boolean get() = client != null
 
@@ -48,9 +48,9 @@ class StudioHub(context: Context, relay: RelayClient?, baseUrl: String, speaking
     val canPlace: Boolean get() = client != null && recognizer.available
 
     /** A ride starts: a new feed, which first sends what an earlier ride couldn't. */
-    fun startRide(): StudioFeed? {
+    fun startRide(): LocalFeed? {
         val c = client ?: return null
-        return StudioFeed(c, memory, clips, { settings.settings.value }).also { _feed.value = it }
+        return LocalFeed(c, memory, clips, { settings.settings.value }).also { _feed.value = it }
     }
 
     fun endRide() {
@@ -76,10 +76,10 @@ class StudioHub(context: Context, relay: RelayClient?, baseUrl: String, speaking
     }
 
     fun opened(reading: Reading) {
-        _feed.value?.opened(reading) ?: memory.markOpened(StudioFeed.refOf(reading), Instant.now())
+        _feed.value?.opened(reading) ?: memory.markOpened(LocalFeed.refOf(reading), Instant.now())
     }
 
-    suspend fun report(reading: Reading, reason: ReportReason) = client!!.report(StudioFeed.refOf(reading), reason)
+    suspend fun report(reading: Reading, reason: ReportReason) = client!!.report(LocalFeed.refOf(reading), reason)
 
     /** Blocks the author of [note]; its text is kept on the device to show which block it is. */
     suspend fun block(note: Note) {

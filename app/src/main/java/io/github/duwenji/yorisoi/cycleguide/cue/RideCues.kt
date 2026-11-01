@@ -1,5 +1,6 @@
 package io.github.duwenji.yorisoi.cycleguide.cue
 
+import io.github.duwenji.yorisoi.core.format.CueEvent
 import io.github.duwenji.yorisoi.core.format.PresentAs
 import io.github.duwenji.yorisoi.core.format.Trigger
 import io.github.duwenji.yorisoi.core.format.material.BuiltInProducers
@@ -24,6 +25,7 @@ import io.github.duwenji.yorisoi.kit.channel.material.Situation
 import io.github.duwenji.yorisoi.kit.channel.material.Subject
 import io.github.duwenji.yorisoi.kit.channel.remote.ChannelSync
 import io.github.duwenji.yorisoi.kit.geo.Poi
+import io.github.duwenji.yorisoi.kit.local.LocalReading
 
 /**
  * The ride as this app's built-in producers read it (platform ADR-ECOSYSTEM-PLATFORM E-16):
@@ -62,22 +64,20 @@ class FallbackTextProducer : Producer {
 }
 
 /**
- * A channel's spot and point cues on a ride (requirements F-32): which fire, and what they say.
- * Only the spoken presentation is made ([CuePresenter] with `{speak}`), so a card's AI is never
- * asked; the line is its first text. Counted for `repeat` in [shown] (the ride's) and in the
- * finder's memory.
+ * A channel's spot, point and idle cues on a ride (requirements F-32, F-34): which fire, and what
+ * they say. Only the spoken presentation is made ([CuePresenter] with `{speak}`), so a card's AI is
+ * never asked; the line is its first text. Counted for `repeat` in [shown] (the ride's) and in the
+ * finder's memory. [local] are the producers of studios and notes (platform kit-local-materials).
  */
-class RideCues(narrator: Narrator, private val finder: CueFinder, log: MaterialLog) {
+class RideCues(narrator: Narrator, private val finder: CueFinder, local: List<Producer>, log: MaterialLog) {
     private val presenter = CuePresenter(
-        Producers(listOf(AiGuideProducer(narrator), FallbackTextProducer()), log),
+        Producers(listOf(AiGuideProducer(narrator), FallbackTextProducer()) + local, log),
         ChannelSync.MEDIA_STAGE, log, shows = setOf(PresentAs.SPEAK),
     )
 
     /** The cue that fires on [poi] now, if [station] names it by its id or name (or its kind). */
-    fun spot(station: Station, poi: Poi, distanceM: Int?, shown: Set<String>, now: Long): CueFire? {
-        val media = station.materials?.media ?: return null
-        return finder.spot(station.id, media, PoiSpot(poi, distanceM), shown, now)
-    }
+    fun spot(station: Station, poi: Poi, distanceM: Int?, shown: Set<String>, now: Long): CueFire? =
+        finder.spot(station.id, station.cueMedia, PoiSpot(poi, distanceM), shown, now)
 
     /** Whether a cue names [poi] itself (not only its kind): the spot rule then picks it first. */
     fun names(station: Station, poi: Poi, shown: Set<String>, now: Long): Boolean {
@@ -85,15 +85,22 @@ class RideCues(narrator: Narrator, private val finder: CueFinder, log: MaterialL
     }
 
     /** The point cue the rider at [lat], [lon] is inside, if it may still fire. */
-    fun point(station: Station, lat: Double, lon: Double, shown: Set<String>, now: Long): CueFire? {
-        val media = station.materials?.media ?: return null
-        return finder.point(station.id, media, lat, lon, shown, now)
-    }
+    fun point(station: Station, lat: Double, lon: Double, shown: Set<String>, now: Long): CueFire? =
+        finder.point(station.id, station.cueMedia, lat, lon, shown, now)
+
+    /**
+     * The channel's idle cues, in order: between lines, a studio or a note around the rider (its
+     * shorthand ones too, a studio first; platform API-MATERIALS「省略形の展開」).
+     */
+    fun idle(station: Station, shown: Set<String>, now: Long): List<CueFire> =
+        finder.events(station.id, station.cueMedia, CueEvent.IDLE, Subject.None, shown, now)
 
     /** What [fire] says on this ride: its first spoken text, with its credit; null when it has none. */
     suspend fun speak(fire: CueFire, station: Station, ride: RideContext): Line? {
         val shown = presenter.present(fire, station, MaterialContext(station, ride))
         val m = shown.firstOrNull { it.presentAs == PresentAs.SPEAK }?.items?.firstOrNull() ?: return null
+        // People's own words, as they are with their source first (platform API-MATERIALS P-8).
+        (m.content as? LocalReading)?.let { return Line(it.text, m.credit?.author, local = it.reading) }
         val text = (m.content as? Content.Text)?.text?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         return Line(text, m.credit?.author)
     }

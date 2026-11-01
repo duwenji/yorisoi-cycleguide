@@ -139,7 +139,7 @@ platform の ADR-ECOSYSTEM-PLATFORM は、2 本目のアプリをサイクリン
 | 要件ID | 内容 | 段階 |
 |---|---|---|
 | F-30 | `cycle` の代表のアプリとして、プロンプト・パックを公開し、管理システムで見本を作れるようにする | 2 |
-| F-34 | その場の素材（スタジオ・一言。platform [REQ-STUDIO](https://github.com/duwenji/yorisoi-platform/blob/main/docs/requirements/REQ-STUDIO.md)・[REQ-NOTES](https://github.com/duwenji/yorisoi-platform/blob/main/docs/requirements/REQ-NOTES.md)）: 設定でオンにしたとき、走行中に近くの一言とスタジオを、話すことがなく話さない場面でもないときに読み上げる。一言を置く・いいね・通報・ブロックは止まっているときだけ | 2 |
+| F-34 | その場の素材（スタジオ・一言。platform [REQ-STUDIO](https://github.com/duwenji/yorisoi-platform/blob/main/docs/requirements/REQ-STUDIO.md)・[REQ-NOTES](https://github.com/duwenji/yorisoi-platform/blob/main/docs/requirements/REQ-NOTES.md)）: 種類ごとに設定でオンにしたとき、走行中に近くのスタジオと一言を、チャンネルのきっかけ（書いていなければ、話すことがなく話さない場面でもないとき）に読み上げる。一言を置く・いいね・通報・ブロックは止まっているときだけ | 2 |
 
 ## 非機能要件
 

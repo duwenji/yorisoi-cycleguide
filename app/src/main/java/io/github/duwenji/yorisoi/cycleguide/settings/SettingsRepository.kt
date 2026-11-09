@@ -38,6 +38,8 @@ data class RideSettings(
     val developerMode: Boolean = false,
     /** Whether the ways ridden again and again become frequent ways by themselves (REQ-FREQUENT-WAYS F-17). */
     val findWays: Boolean = true,
+    /** Whether the companion chats when there's nothing else to say (platform REQ-NEARBY-TALK F-19). */
+    val chat: Boolean = true,
     /** The map under the spots: pale GSI unless chosen otherwise, so spots and the way stand out. */
     val mapStyle: MapStyle = MapStyle.GSI_PALE,
 ) {
@@ -106,6 +108,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
             dailyAiLimit = if (prefs.contains(KEY_DAILY_AI_LIMIT)) prefs.getInt(KEY_DAILY_AI_LIMIT, NO_LIMIT).takeIf { it != NO_LIMIT } else 100,
             developerMode = prefs.getBoolean(KEY_DEVELOPER_MODE, false),
             findWays = prefs.getBoolean(KEY_FIND_WAYS, true),
+            chat = prefs.getBoolean(KEY_CHAT, true),
             mapStyle = prefs.getString(KEY_MAP_STYLE, null)?.let { n -> RideSettings.MAP_STYLES.firstOrNull { it.name == n } } ?: MapStyle.GSI_PALE,
         )
     }
@@ -120,6 +123,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
         putInt(KEY_DAILY_AI_LIMIT, s.dailyAiLimit ?: NO_LIMIT)
         putBoolean(KEY_DEVELOPER_MODE, s.developerMode)
         putBoolean(KEY_FIND_WAYS, s.findWays)
+        putBoolean(KEY_CHAT, s.chat)
         putString(KEY_MAP_STYLE, s.mapStyle.name)
         for (p in Provider.entries) {
             val key = s.apiKeys[p]?.trim().orEmpty()
@@ -148,6 +152,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
         const val NO_LIMIT = -1
         const val KEY_DEVELOPER_MODE = "developer_mode"
         const val KEY_FIND_WAYS = "find_ways"
+        const val KEY_CHAT = "chat"
         const val KEY_MAP_STYLE = "map_style"
     }
 }

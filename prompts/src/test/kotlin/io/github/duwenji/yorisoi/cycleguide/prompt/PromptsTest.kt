@@ -52,7 +52,10 @@ class PromptsTest {
             assertTrue(station.id, system.contains("90字以内"))
             assertTrue(station.id, system.contains("名前しか分からない"))
             for (event in Prompts.Event.entries) {
-                val vars = mapOf("minutes" to 4, "km" to "5.2", "spots" to "大巧寺")
+                val vars = mapOf(
+                    "minutes" to 4, "km" to "5.2", "spots" to "大巧寺",
+                    "topic" to "周りの見どころ", "nearby_topic" to true, "body_topic" to false, "channel_topic" to false,
+                )
                 val user = Prompts.companionUser(prompts, situation, event, vars, station::slot)
                 assertTrue("${station.id} ${event.name}", user.contains("# 出来事"))
                 assertFalse("${station.id} ${event.name}", user.contains("{{"))

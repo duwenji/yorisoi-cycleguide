@@ -12,7 +12,7 @@
       spots         今回案内した場所（「、」区切り）。なければ null
     recent        今回の走行で最近話したこと（なければ null）
       lines         発言のリスト（古い順、最大4件）
-    nearby        周り（約1km以内）の、まだ話していない見どころ（platform REQ-NEARBY-TALK F-9）。休憩・区切りのときだけ。ないときは null
+    nearby        周り（約1km以内）の、まだ話していない見どころ（platform REQ-NEARBY-TALK F-9）。休憩・区切り・雑談のときだけ。ないときは null
       spots         各要素は name（名称）・category（種別）・distance_m（距離。50m単位）・compass（8方位）・
                     side（進む向きから見て 前方・右手・左手・後ろ。分からないときは null）
 }}

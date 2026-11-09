@@ -134,6 +134,7 @@ fun SettingsScreen(
             }
             item { AiSettings(settings, onChange) }
             item { MapSection(settings, onChange) }
+            item { ChatSection(settings, onChange) }
             item { WaysSection(settings, onChange, onOpenWays) }
             item { StudioSection(studio) }
             if (hasHistory) item { HistorySection(clearHistory) }
@@ -295,6 +296,22 @@ private fun MapSection(settings: RideSettings, onChange: ((RideSettings) -> Ride
             settings.mapStyle.description
         }
         Text(description, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** The chat when there's nothing else to say (platform REQ-NEARBY-TALK F-19). */
+@Composable
+private fun ChatSection(settings: RideSettings, onChange: ((RideSettings) -> RideSettings) -> Unit) {
+    Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("雑談", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "話すことがないまま「ひと言の間隔」が過ぎたら、季節や天気、走ってきた道、周りの見どころなどの話を一言します。運営の AI か自分のキーを使えるときだけで、信号の近くや速いときは話しません。",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("雑談をする", modifier = Modifier.weight(1f))
+            Switch(checked = settings.chat, onCheckedChange = { on -> onChange { it.copy(chat = on) } })
+        }
     }
 }
 

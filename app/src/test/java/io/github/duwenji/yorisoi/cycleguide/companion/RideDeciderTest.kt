@@ -204,4 +204,36 @@ class RideDeciderTest {
         assertEquals(RideDecision.Greeting("歴史の道を走りましょう"), decide(switched))
         assertEquals(RideDecision.Nothing, decide(switched.copy(pendingGreeting = null)))
     }
+
+    // ---- a word between the other lines (platform REQ-NEARBY-TALK F-14〜F-19) ----
+
+    /** Riding 40 minutes, the last line 10 minutes ago, nothing else due; the rider chats and the AI can be asked. */
+    private val quietStretch = calm.copy(chatReady = true, startedAt = now - 40 * minute)
+
+    @Test
+    fun `after the gap with nothing to say, a chat on the first topic, within the riding length`() {
+        assertEquals(RideDecision.Chat(ChatTopic.SEASON_WEATHER, 15 * SpeechBudget.CHARS_PER_SEC), decide(quietStretch))
+        assertEquals(RideDecision.Nothing, decide(quietStretch.copy(lastSpokeAt = now - minute)))
+    }
+
+    @Test
+    fun `no chat near a light or at speed, stopped, without the AI or the setting, or on a quiet channel`() {
+        assertEquals(RideDecision.Nothing, decide(quietStretch.copy(quiet = true)))
+        assertEquals(RideDecision.Nothing, decide(quietStretch.copy(chatReady = false)))
+        assertEquals(RideDecision.Nothing, decide(quietStretch.copy(events = TalkEventKind.entries.toSet() - TalkEventKind.CHAT)))
+        assertTrue(decide(quietStretch.copy(level = TalkLevel.QUIET)) !is RideDecision.Chat)
+        assertTrue(decide(quietStretch.copy(state = MotionState.SIGNAL_STOP, stoppedMs = 15_000)) !is RideDecision.Chat)
+    }
+
+    @Test
+    fun `a chat the AI didn't answer isn't tried again at once`() {
+        assertEquals(RideDecision.Nothing, decide(quietStretch.copy(lastChatAt = now - minute)))
+    }
+
+    @Test
+    fun `chat topics go in turn and not one of the last two`() {
+        assertEquals(ChatTopic.TIME_OF_DAY, ChatTopic.next(listOf(ChatTopic.SEASON_WEATHER), 0, nearbyKnown = true))
+        assertEquals(ChatTopic.CHANNEL, ChatTopic.next(listOf(ChatTopic.TIME_OF_DAY, ChatTopic.ROUTE), 0, nearbyKnown = false))
+        assertEquals(ChatTopic.BODY, ChatTopic.next(listOf(ChatTopic.ROUTE, ChatTopic.NEARBY), ChatTopic.BODY_AFTER_MS, nearbyKnown = true))
+    }
 }

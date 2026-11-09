@@ -31,6 +31,7 @@ object Prompts {
         REST("rest", TalkEventKind.REST),
         MILESTONE("milestone", TalkEventKind.MILESTONE),
         FINISH("finish", TalkEventKind.FINISH),
+        CHAT("chat", TalkEventKind.CHAT),
     }
 
     fun event(e: Event) = "companion/events/${e.file}"

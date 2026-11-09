@@ -71,6 +71,13 @@ data class RideSituation(
     val amenityMentionedAt: Map<Amenity, Long> = emptyMap(),
     /** The channel's point cue the rider is inside and that may still fire on this ride. */
     val pointCue: PointCue? = null,
+    /** Whether the rider chats ([RideSettings.chat]) and the AI can be asked: a chat has no fixed line (platform REQ-NEARBY-TALK F-17, F-19). */
+    val chatReady: Boolean = false,
+    /** When a chat was last tried, said or not; the chats' topics so far, oldest first. */
+    val lastChatAt: Long = 0,
+    val chatTopics: List<ChatTopic> = emptyList(),
+    /** Whether there are spots around to talk of (the companion is told of them). */
+    val nearbyKnown: Boolean = false,
 ) : TalkGates<RideGate> {
     override fun isOpen(gate: RideGate): Boolean = when (gate) {
         RideGate.NOT_QUIET -> !quiet
@@ -115,6 +122,8 @@ sealed interface RideDecision {
     data class AmenityNear(val advice: AmenityAdvice) : RideDecision
     data class Rest(val minutes: Int, val maxChars: Int) : RideDecision
     data class Milestone(val maxChars: Int) : RideDecision
+    /** A word between the other lines, on [topic] (platform REQ-NEARBY-TALK F-14). */
+    data class Chat(val topic: ChatTopic, val maxChars: Int) : RideDecision
     data object Nothing : RideDecision
 }
 
@@ -190,6 +199,14 @@ object RideDecider {
         Rule("milestone", setOf(RideGate.CHAT_GAP, RideGate.NOT_QUIET, RideGate.NOT_SWITCHED)) { s ->
             val due = s.distanceM - s.lastMilestoneDistanceM >= s.values[StyleItem.MILESTONE_KM] * 1000.0
             RideDecision.Milestone(s.maxChars).takeIf { due && TalkEventKind.MILESTONE in s.events }
+        },
+        // Nothing else to say for the gap: a word between, while riding, with the AI only; not near a
+        // light or at speed, nor on a quiet channel (platform REQ-NEARBY-TALK F-14〜F-19).
+        Rule("chat", setOf(RideGate.CHAT_GAP, RideGate.NOT_QUIET, RideGate.NOT_SWITCHED)) { s ->
+            if (s.state != MotionState.MOVING || s.level == TalkLevel.QUIET || TalkEventKind.CHAT !in s.events || !s.chatReady) return@Rule null
+            // A chat the AI didn't answer isn't asked again at once.
+            if (s.now - s.lastChatAt < s.values.ms(StyleItem.CHAT_GAP_MIN)) return@Rule null
+            ChatTopic.next(s.chatTopics, s.now - s.startedAt, s.nearbyKnown)?.let { RideDecision.Chat(it, s.maxChars) }
         },
     )
 

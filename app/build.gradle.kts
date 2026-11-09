@@ -108,6 +108,7 @@ dependencies {
     implementation(libs.yorisoi.kit.ui)
     // The studios and notes near the ride, as built-in producers for the channel's cues (platform kit-local-materials).
     implementation(libs.yorisoi.kit.local.materials)
+    implementation(libs.yorisoi.kit.songs)
     // kit-channel's OkHttpProviderHttp and TinkEd25519 (third-party channels) need them.
     implementation(libs.okhttp)
     implementation(libs.tink.android)

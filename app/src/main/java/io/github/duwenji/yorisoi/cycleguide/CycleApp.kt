@@ -1,5 +1,7 @@
 package io.github.duwenji.yorisoi.cycleguide
 
+import io.github.duwenji.yorisoi.kit.songs.SongPlayer
+import io.github.duwenji.yorisoi.kit.songs.SongLibrary
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -73,6 +75,12 @@ class CycleApp : Application() {
     lateinit var spots: SpotRepository
         private set
     lateinit var speaker: Speaker
+        private set
+
+    /** The season's songs kept on the device, and their player (platform API-SONGS). */
+    lateinit var songs: SongLibrary
+        private set
+    lateinit var songPlayer: SongPlayer
         private set
     lateinit var ai: AiGateway
         private set
@@ -172,6 +180,8 @@ class CycleApp : Application() {
         )
         WayPrefetchWorker.scheduleDaily(this)
         speaker = Speaker(this)
+        songs = SongLibrary(File(filesDir, "songs"), BuildConfig.SPOT_TILES_URL, "CycleGuide/${BuildConfig.VERSION_NAME}")
+        songPlayer = SongPlayer(this)
         local = LocalHub(this, relay, BuildConfig.LOCAL_MATERIALS_URL, speaker.speaking)
         getSystemService(NotificationManager::class.java).apply {
             createNotificationChannel(NotificationChannel(CHANNEL_RIDE, "走行中", NotificationManager.IMPORTANCE_LOW))

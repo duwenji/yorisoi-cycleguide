@@ -40,6 +40,8 @@ data class RideSettings(
     val findWays: Boolean = true,
     /** Whether the companion chats when there's nothing else to say (platform REQ-NEARBY-TALK F-19). */
     val chat: Boolean = true,
+    /** Whether a season's song may be played as one of the chat's topics (platform REQ-NEARBY-TALK F-27). */
+    val playSongs: Boolean = true,
     /** The map under the spots: pale GSI unless chosen otherwise, so spots and the way stand out. */
     val mapStyle: MapStyle = MapStyle.GSI_PALE,
 ) {
@@ -109,6 +111,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
             developerMode = prefs.getBoolean(KEY_DEVELOPER_MODE, false),
             findWays = prefs.getBoolean(KEY_FIND_WAYS, true),
             chat = prefs.getBoolean(KEY_CHAT, true),
+            playSongs = prefs.getBoolean(KEY_PLAY_SONGS, true),
             mapStyle = prefs.getString(KEY_MAP_STYLE, null)?.let { n -> RideSettings.MAP_STYLES.firstOrNull { it.name == n } } ?: MapStyle.GSI_PALE,
         )
     }
@@ -124,6 +127,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
         putBoolean(KEY_DEVELOPER_MODE, s.developerMode)
         putBoolean(KEY_FIND_WAYS, s.findWays)
         putBoolean(KEY_CHAT, s.chat)
+        putBoolean(KEY_PLAY_SONGS, s.playSongs)
         putString(KEY_MAP_STYLE, s.mapStyle.name)
         for (p in Provider.entries) {
             val key = s.apiKeys[p]?.trim().orEmpty()
@@ -153,6 +157,7 @@ class SettingsRepository(context: Context, private val operatorAvailable: Boolea
         const val KEY_DEVELOPER_MODE = "developer_mode"
         const val KEY_FIND_WAYS = "find_ways"
         const val KEY_CHAT = "chat"
+        const val KEY_PLAY_SONGS = "play_songs"
         const val KEY_MAP_STYLE = "map_style"
     }
 }

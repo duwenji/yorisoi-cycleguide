@@ -1,5 +1,6 @@
 package io.github.duwenji.yorisoi.cycleguide.ui
 
+import io.github.duwenji.yorisoi.cycleguide.CycleApp
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -249,6 +250,15 @@ private fun AboutSection(settings: RideSettings, onChange: ((RideSettings) -> Ri
     Column(Modifier.padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("このアプリについて", style = MaterialTheme.typography.titleMedium)
         Text("地図: 国土地理院・© OpenStreetMap contributors　スポット・信号: © OpenStreetMap contributors　天気: Open-Meteo.com", style = MaterialTheme.typography.bodySmall)
+        // The season's songs and who made them (platform API-SONGS AS-6).
+        (context.applicationContext as CycleApp).songs.catalog?.let { c ->
+            Text(
+                "季節の歌: " + c.credit + "　" + c.songs.joinToString("、") { s ->
+                    if (s.lyricist.name == s.composer.name) "「${s.title}」（${s.lyricist.name}）" else "「${s.title}」（作詞 ${s.lyricist.name}・作曲 ${s.composer.name}）"
+                },
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         Text(
             "バージョン ${BuildConfig.VERSION_NAME}" + when {
                 settings.developerMode -> "（開発者モード）"
@@ -311,6 +321,15 @@ private fun ChatSection(settings: RideSettings, onChange: ((RideSettings) -> Rid
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("雑談をする", modifier = Modifier.weight(1f))
             Switch(checked = settings.chat, onCheckedChange = { on -> onChange { it.copy(chat = on) } })
+        }
+        Text(
+            "雑談の一つとして、季節の唱歌・童謡のメロディ（30〜60 秒）を流します。走り始めて 10 分から、1 回の走行で 2 曲まで。" +
+                "曲は Wi-Fi のときに取っておき、走行中は通信しません。ほかのアプリで音楽を再生しているときと通話中は流しません。",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("季節の歌を流す", modifier = Modifier.weight(1f))
+            Switch(checked = settings.playSongs, enabled = settings.chat, onCheckedChange = { on -> onChange { it.copy(playSongs = on) } })
         }
     }
 }

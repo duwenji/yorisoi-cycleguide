@@ -54,7 +54,7 @@ class PromptsTest {
             for (event in Prompts.Event.entries) {
                 val vars = mapOf(
                     "minutes" to 4, "km" to "5.2", "spots" to "大巧寺",
-                    "topic" to "周りの見どころ", "nearby_topic" to true, "body_topic" to false, "channel_topic" to false,
+                    "topic" to "周りの見どころ", "nearby_topic" to true, "body_topic" to false, "channel_topic" to false, "song_topic" to false, "song_title" to null,
                 )
                 val user = Prompts.companionUser(prompts, situation, event, vars, station::slot)
                 assertTrue("${station.id} ${event.name}", user.contains("# 出来事"))

@@ -28,6 +28,11 @@ class WayPrefetchWorker(context: Context, params: WorkerParameters) : CoroutineW
         val ways = app.ways.ways.value.map { it.points }
         val searches = app.spots.prefetch(ways)
         Log.i(TAG, "Searched ahead $searches times along ${ways.size} ways")
+        // The season's songs, on the same unmetered network and never on a ride (platform API-SONGS AS-1, AS-2).
+        val settings = app.settings.settings.value
+        if (settings.chat && settings.playSongs && app.songs.refresh()) {
+            Log.i(TAG, "Fetched ${app.songs.prefetch()} songs")
+        }
         return Result.success()
     }
 

@@ -78,6 +78,8 @@ data class RideSituation(
     val chatTopics: List<ChatTopic> = emptyList(),
     /** Whether there are spots around to talk of (the companion is told of them). */
     val nearbyKnown: Boolean = false,
+    /** Whether a season's song can be played now (platform REQ-NEARBY-TALK F-23, F-26, F-27). */
+    val songReady: Boolean = false,
 ) : TalkGates<RideGate> {
     override fun isOpen(gate: RideGate): Boolean = when (gate) {
         RideGate.NOT_QUIET -> !quiet
@@ -206,7 +208,7 @@ object RideDecider {
             if (s.state != MotionState.MOVING || s.level == TalkLevel.QUIET || TalkEventKind.CHAT !in s.events || !s.chatReady) return@Rule null
             // A chat the AI didn't answer isn't asked again at once.
             if (s.now - s.lastChatAt < s.values.ms(StyleItem.CHAT_GAP_MIN)) return@Rule null
-            ChatTopic.next(s.chatTopics, s.now - s.startedAt, s.nearbyKnown)?.let { RideDecision.Chat(it, s.maxChars) }
+            ChatTopic.next(s.chatTopics, s.now - s.startedAt, s.nearbyKnown, s.songReady)?.let { RideDecision.Chat(it, s.maxChars) }
         },
     )
 

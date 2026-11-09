@@ -236,4 +236,27 @@ class RideDeciderTest {
         assertEquals(ChatTopic.CHANNEL, ChatTopic.next(listOf(ChatTopic.TIME_OF_DAY, ChatTopic.ROUTE), 0, nearbyKnown = false))
         assertEquals(ChatTopic.BODY, ChatTopic.next(listOf(ChatTopic.ROUTE, ChatTopic.NEARBY), ChatTopic.BODY_AFTER_MS, nearbyKnown = true))
     }
+
+    // ---- a season's song (platform REQ-NEARBY-TALK F-23) ----
+
+    @Test
+    fun `a song is one of the chat's topics, only when one can be played`() {
+        val all = ChatTopic.entries.filter { it != ChatTopic.SONG }
+        assertEquals(ChatTopic.SONG, ChatTopic.next(all.takeLast(2), ChatTopic.BODY_AFTER_MS, nearbyKnown = true, songReady = true))
+        assertEquals(ChatTopic.SEASON_WEATHER, ChatTopic.next(all.takeLast(2), ChatTopic.BODY_AFTER_MS, nearbyKnown = true, songReady = false))
+        assertEquals(
+            RideDecision.Chat(ChatTopic.SONG, 15 * SpeechBudget.CHARS_PER_SEC),
+            decide(quietStretch.copy(chatTopics = all.takeLast(2), songReady = true)),
+        )
+    }
+
+    @Test
+    fun `a song not in the first ten minutes, at most two a ride, twenty minutes apart (F-23, R-5)`() {
+        assertEquals(false, SongMoment.allowed(9 * minute, 0, 0, now))
+        assertEquals(true, SongMoment.allowed(10 * minute, 0, 0, now))
+        assertEquals(false, SongMoment.allowed(40 * minute, 1, now - 19 * minute, now))
+        assertEquals(true, SongMoment.allowed(40 * minute, 1, now - 20 * minute, now))
+        assertEquals(false, SongMoment.allowed(90 * minute, 2, now - 60 * minute, now))
+        assertEquals("秋", SongMoment.seasonWord("autumn"))
+    }
 }

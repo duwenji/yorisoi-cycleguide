@@ -6,6 +6,8 @@
     nearby_topic  話題が周りの見どころなら true
     body_topic    話題が体のことなら true
     channel_topic 話題がこのチャンネルらしい話題なら true
+    song_topic    話題が季節の歌なら true（このあと、その曲のメロディを流す。platform REQ-NEARBY-TALK F-24）
+    song_title    流す曲の題名（song_topic のときだけ。それ以外は null）
 }}
 # 出来事
 しばらく話していないので、走行の相棒として世間話を一言してください。話題: {{topic}}
@@ -15,6 +17,9 @@
 {{#body_topic}}
 しばらく走っているので、水分や一休みをさりげなく気づかってください。勧めすぎないでください。
 {{/body_topic}}
+{{#song_topic}}
+このあと唱歌「{{song_title}}」のメロディを流します。季節や走っている様子に触れながら、曲を紹介する前置きを一言してください。歌詞は引用しないでください。
+{{/song_topic}}
 {{#channel_topic}}
 このチャンネルの役割と話題の選び方に沿った話題にしてください。
 {{/channel_topic}}

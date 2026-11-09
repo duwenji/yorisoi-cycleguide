@@ -15,6 +15,7 @@ class PromptsTest {
         "weather" to "晴れ、気温19℃",
         "ride" to mapOf("minutes" to 30, "km" to "5.2", "spots" to "大巧寺、教恩寺"),
         "recent" to mapOf("lines" to listOf("この先、大巧寺があります。")),
+        "nearby" to mapOf("spots" to listOf(mapOf("name" to "妙本寺", "category" to "寺院", "distance_m" to 500, "compass" to "東", "side" to null))),
     )
 
     @Test
@@ -31,12 +32,12 @@ class PromptsTest {
         }
         val riding = prompts.render(
             Prompts.Guide.USER,
-            mapOf("name" to "大巧寺", "category" to "寺院", "riding" to true, "distance_m" to 160, "passed" to false, "tags" to listOf("religion=buddhist"), "grounded" to false, "grounds" to null, "before" to null),
+            mapOf("name" to "大巧寺", "category" to "寺院", "riding" to true, "distance_m" to 160, "passed" to false, "tags" to listOf("religion=buddhist"), "grounded" to false, "grounds" to null, "before" to null, "facts" to null, "nearby" to null),
         )
         assertTrue(riding.contains("約160m"))
         val passed = prompts.render(
             Prompts.Guide.USER,
-            mapOf("name" to "教恩寺", "category" to "寺院", "riding" to false, "distance_m" to null, "passed" to true, "tags" to emptyList<String>(), "grounded" to false, "grounds" to null, "before" to null),
+            mapOf("name" to "教恩寺", "category" to "寺院", "riding" to false, "distance_m" to null, "passed" to true, "tags" to emptyList<String>(), "grounded" to false, "grounds" to null, "before" to null, "facts" to null, "nearby" to null),
         )
         assertTrue(passed.contains("さきほど通り過ぎた"))
         assertTrue(passed.contains("謝ったり残念がったりせず"))

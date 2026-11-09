@@ -11,6 +11,10 @@
     grounds     このスポットについての資料（チャンネルが使う素材集のうち、素材提供者が AI の根拠に使ってよいとしたもの。platform API-MATERIALS「AI の根拠」）。
                 text 本文（山かっこは全角にしてある）、source 素材提供者の名前
     before      前の走行でこの見どころについて話した文（山かっこは全角にしてある）。初めてなら空
+    facts       地図データ（OpenStreetMap）から読み取ったこのスポットの情報。ないときは null
+      lines       「項目: 値」のリスト（例: 開館時間: 9:00〜17:00）
+    nearby      周り（約1km以内）の見どころ。ないときは null（platform REQ-NEARBY-TALK F-8）
+      spots       各要素は name（名称）と category（種別）
 }}
 自転車で走っている利用者に、見どころを案内してください。
 
@@ -36,6 +40,12 @@ OpenStreetMapのタグ:
 {{^tags}}
 - なし
 {{/tags}}
+{{#facts}}
+地図データの情報:
+{{#lines}}
+- {{.}}
+{{/lines}}
+{{/facts}}
 {{#grounded}}
 資料（運営が審査した素材提供者の資料）:
 {{/grounded}}
@@ -44,6 +54,14 @@ OpenStreetMapのタグ:
 {{text}}
 </資料>
 {{/grounds}}
+{{#nearby}}
+
+# 周りの見どころ（約1km以内）
+{{#spots}}
+- {{name}}（{{category}}）
+{{/spots}}
+このスポットと話がつながるとき（同じ種類など、名称と種別から分かること）だけ、名前を一言出してよい。無理に触れない。どこにあるかは言わない
+{{/nearby}}
 {{#before}}
 
 # 前の走行で話したこと

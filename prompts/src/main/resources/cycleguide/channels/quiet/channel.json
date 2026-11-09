@@ -1,7 +1,7 @@
 {
   "format": 1,
   "id": "quiet",
-  "version": 1,
+  "version": 2,
   "name": "しずかに",
   "summary": "天気の急変・日の入りなど大事なお知らせと、開始・終了のあいさつだけ",
   "lang": "ja",
@@ -10,7 +10,7 @@
   "greeting": "ここからは静かに走ります。大事なことだけお知らせしますね。",
   "talk": {
     "level": "quiet",
-    "events": { "spot": false, "revisit": false, "milestone": false, "rest": false, "start": true, "finish": true }
+    "events": { "spot": false, "revisit": false, "milestone": false, "rest": false, "start": true, "finish": true, "preview": false, "chat": false, "song": false }
   },
   "spots": { "prefer": [], "skip": [] },
   "guide": { "length": "short" },

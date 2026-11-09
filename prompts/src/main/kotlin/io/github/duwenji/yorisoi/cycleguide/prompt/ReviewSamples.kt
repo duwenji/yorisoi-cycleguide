@@ -55,6 +55,14 @@ object ReviewSamples {
                     riding("大巧寺", "寺院", 160, listOf("amenity=place_of_worship", "religion=buddhist")) +
                         mapOf("before" to "この先、大巧寺があります。安産祈願で知られるお寺です。"),
                 ),
+                // platform REQ-NEARBY-TALK F-8: the map's facts, and the spots around by name and kind only.
+                guide(
+                    "ride-guide-nearby", "進む先の見どころ（地図データの情報と周りの見どころつき）", RIDING_CHARS,
+                    riding("長谷寺", "寺院", 180, listOf("amenity=place_of_worship", "religion=buddhist")) + mapOf(
+                        "facts" to mapOf("lines" to listOf("宗教: 仏教（浄土宗）", "拝観時間: 8:00〜17:00")),
+                        "nearby" to mapOf("spots" to listOf(mapOf("name" to "高徳院", "category" to "寺院"), mapOf("name" to "長谷駅", "category" to "駅"))),
+                    ),
+                ),
                 // The grounds carry an instruction the AI must not follow (API-MATERIALS W-23).
                 guide(
                     "ride-guide-grounded", "進む先の見どころ（資料つき。資料の中の指示に従わないか）", RIDING_CHARS,
@@ -84,12 +92,12 @@ object ReviewSamples {
 
     private fun riding(name: String, category: String, distanceM: Int, tags: List<String>) = mapOf(
         "name" to name, "category" to category, "riding" to true, "distance_m" to distanceM, "passed" to false, "tags" to tags,
-        "grounded" to false, "grounds" to null, "before" to null,
+        "grounded" to false, "grounds" to null, "before" to null, "facts" to null, "nearby" to null,
     )
 
     private fun passed(name: String, category: String, tags: List<String>) = mapOf(
         "name" to name, "category" to category, "riding" to false, "distance_m" to null, "passed" to true, "tags" to tags,
-        "grounded" to false, "grounds" to null, "before" to null,
+        "grounded" to false, "grounds" to null, "before" to null, "facts" to null, "nearby" to null,
     )
 
     private val midRide = mapOf(
@@ -97,9 +105,15 @@ object ReviewSamples {
         "weather" to "くもり、気温20℃",
         "ride" to mapOf("minutes" to 40, "km" to "6.8", "spots" to "大巧寺"),
         "recent" to mapOf("lines" to listOf("この先、大巧寺があります。安産祈願で知られるお寺です。")),
+        // platform REQ-NEARBY-TALK F-9: the spots around, with how far and which way.
+        "nearby" to mapOf("spots" to listOf(
+            mapOf("name" to "妙本寺", "category" to "寺院", "distance_m" to 500, "compass" to "東", "side" to "右手"),
+            mapOf("name" to "夷堂橋", "category" to "橋", "distance_m" to 300, "compass" to "南", "side" to "前方"),
+        )),
     )
 
     private val finished = midRide + mapOf(
+        "nearby" to null,
         "now" to "10月4日（土）14:40",
         "ride" to mapOf("minutes" to 75, "km" to "12.4", "spots" to "大巧寺、鶴岡八幡宮"),
     )

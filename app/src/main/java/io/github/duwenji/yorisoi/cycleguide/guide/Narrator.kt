@@ -1,5 +1,7 @@
 package io.github.duwenji.yorisoi.cycleguide.guide
 
+import io.github.duwenji.yorisoi.kit.geo.SpotFacts
+import io.github.duwenji.yorisoi.kit.geo.NearbyHighlight
 import io.github.duwenji.yorisoi.core.prompt.PromptTemplates
 import io.github.duwenji.yorisoi.cycleguide.prompt.Prompts
 import io.github.duwenji.yorisoi.kit.channel.Station
@@ -50,6 +52,7 @@ class Narrator(
     /**
      * [grounds]: the texts to take as fact, when a cue's request carries them; otherwise gathered here.
      * [before]: what was said about the spot on an earlier ride, not to be said again (REQ-FREQUENT-WAYS F-11).
+     * [nearby]: the spots around (platform REQ-NEARBY-TALK F-8), of which only the names and kinds go in.
      */
     suspend fun spot(
         poi: Poi,
@@ -59,12 +62,13 @@ class Narrator(
         maxChars: Int,
         grounds: List<Ground>? = null,
         before: String? = null,
+        nearby: List<NearbyHighlight> = emptyList(),
     ): Line? {
         val facts = grounds ?: Grounding.collect(PoiSpot(poi, distanceM), station)
         return ask(
             Purpose.GUIDE,
             prompts.render(Prompts.Guide.SYSTEM, Prompts.guideSystemVars(station::slot, maxChars)),
-            prompts.render(Prompts.Guide.USER, spotVars(poi, distanceM, riding, facts, before)),
+            prompts.render(Prompts.Guide.USER, spotVars(poi, distanceM, riding, facts, before, nearby)),
             basedOn = facts.map { it.producerName }.distinct(),
         )
     }
@@ -103,7 +107,14 @@ class Narrator(
          * Values for `guide/user`: [distanceM] null for a spot already passed; [grounds] the texts the AI
          * may take as fact; [before] what was said about it on an earlier ride.
          */
-        fun spotVars(poi: Poi, distanceM: Int?, riding: Boolean, grounds: List<Ground> = emptyList(), before: String? = null): Map<String, Any?> = mapOf(
+        fun spotVars(
+            poi: Poi,
+            distanceM: Int?,
+            riding: Boolean,
+            grounds: List<Ground> = emptyList(),
+            before: String? = null,
+            nearby: List<NearbyHighlight> = emptyList(),
+        ): Map<String, Any?> = mapOf(
             "name" to poi.name,
             "category" to poi.category,
             "riding" to riding,
@@ -114,7 +125,23 @@ class Narrator(
             // A ground can't close its own tag and pass for the prompt (API-MATERIALS I-15).
             "grounds" to grounds.map { mapOf("text" to fence(it.text), "source" to fence(it.producerName)) }.ifEmpty { null },
             "before" to before?.let(::fence),
+            "facts" to facts(poi)?.let { mapOf("lines" to it) },
+            // Names and kinds only: where they are is for the companion's lines (REQ-NEARBY-TALK D-6).
+            "nearby" to nearby.filter { it.poi.id != poi.id }
+                .map { mapOf("name" to it.poi.name, "category" to it.poi.category) }.ifEmpty { null }?.let { mapOf("spots" to it) },
         )
+
+        /** What the map's data says of the spot (kit-geo SpotFacts); null when nothing. */
+        internal fun facts(poi: Poi): List<String>? {
+            val f = SpotFacts.of(poi.tags)
+            return (listOfNotNull(f.reading?.let { "読み: $it" }) + f.details.map { "${it.label}: ${it.value}" }).ifEmpty { null }
+        }
+
+        /** The spots around for `companion/situation` (REQ-NEARBY-TALK F-9): with how far and which way. */
+        fun nearbyVars(list: List<NearbyHighlight>): Map<String, Any?>? =
+            list.map {
+                mapOf("name" to it.poi.name, "category" to it.poi.category, "distance_m" to it.distanceM, "compass" to it.compass, "side" to it.side)
+            }.ifEmpty { null }?.let { mapOf("spots" to it) }
 
         private fun fence(text: String) = text.replace('<', '＜').replace('>', '＞')
 
@@ -127,6 +154,7 @@ class Narrator(
             distanceM: Double,
             spots: List<String>,
             recent: List<String>,
+            nearby: List<NearbyHighlight> = emptyList(),
         ): Map<String, Any?> {
             val c = Calendar.getInstance().apply { timeInMillis = now }
             val hour = c.get(Calendar.HOUR_OF_DAY)
@@ -157,6 +185,7 @@ class Narrator(
                     )
                 },
                 "recent" to recent.takeLast(4).ifEmpty { null }?.let { mapOf("lines" to it) },
+                "nearby" to nearbyVars(nearby),
             )
         }
     }

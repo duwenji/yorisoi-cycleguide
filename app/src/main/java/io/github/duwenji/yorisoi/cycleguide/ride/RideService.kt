@@ -1,5 +1,7 @@
 package io.github.duwenji.yorisoi.cycleguide.ride
 
+import io.github.duwenji.yorisoi.kit.geo.NearbyHighlights
+import io.github.duwenji.yorisoi.kit.geo.NearbyHighlight
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationManager
@@ -379,7 +381,10 @@ class RideService : LifecycleService() {
                 val written = within(wait, decision.poi.name) {
                     val cue = app.cues.spot(station, decision.poi, decision.distanceM, s.shownCues, now)
                     val cued = cue?.let { cueLine(s, it, station, RideContext(riding = true, decision.maxChars), now) }
-                    cued ?: app.narrator.spot(decision.poi, decision.distanceM, riding = true, station, decision.maxChars, before = s.past.before(decision.poi, now))
+                    cued ?: app.narrator.spot(
+                        decision.poi, decision.distanceM, riding = true, station, decision.maxChars,
+                        before = s.past.before(decision.poi, now), nearby = nearby(s, station, except = decision.poi.id),
+                    )
                 }
                 // The rider may have stopped while it was written: the length allowed now counts.
                 if (written != null && !SpeechBudget.fits(written.text, maxCharsNow())) {
@@ -458,8 +463,19 @@ class RideService : LifecycleService() {
         val situation = Narrator.situationVars(
             now, app.settings.settings.value.values.style.label, weather,
             rideMinutes = ((now - s.startedAt) / 60_000).toInt(), distanceM = s.distanceM, spots = s.spotNames, recent = s.recentLines,
+            nearby = nearby(s, station),
         )
         return app.narrator.talk(event, vars, situation, station, maxChars)?.takeIf { SpeechBudget.fits(it.text, maxCharsNow()) }
+    }
+
+    /**
+     * The spots around the rider not talked about on this ride (platform REQ-NEARBY-TALK F-6〜F-9),
+     * leaving out [except] too; for a rest or a milestone, and the narration of a spot.
+     */
+    private fun nearby(s: RideSession, station: Station, except: String? = null): List<NearbyHighlight> {
+        val here = lastLocation?.let { LatLon(it.latitude, it.longitude) } ?: return emptyList()
+        val spots = app.spots.spots.value.filter { !s.alreadyTalked(it) && it.id != except }
+        return NearbyHighlights.pick(spots, here, headingDeg = heading, prefer = station.prefer, skip = station.skip)
     }
 
     /** The point cue the rider at [here] is inside, if any may still fire (F-32). */

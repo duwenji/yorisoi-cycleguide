@@ -12,6 +12,9 @@
       spots         今回案内した場所（「、」区切り）。なければ null
     recent        今回の走行で最近話したこと（なければ null）
       lines         発言のリスト（古い順、最大4件）
+    nearby        周り（約1km以内）の、まだ話していない見どころ（platform REQ-NEARBY-TALK F-9）。休憩・区切りのときだけ。ないときは null
+      spots         各要素は name（名称）・category（種別）・distance_m（距離。50m単位）・compass（8方位）・
+                    side（進む向きから見て 前方・右手・左手・後ろ。分からないときは null）
 }}
 # いまの状況
 - 日時: {{now}}（{{time_of_day}}、{{season}}）
@@ -25,6 +28,13 @@
 - 今回案内した場所: {{spots}}
 {{/spots}}
 {{/ride}}
+{{#nearby}}
+
+# 周りの見どころ（約1km以内、まだ話していないもの）
+{{#spots}}
+- {{name}}（{{category}}）: 約{{distance_m}}m、{{compass}}{{#side}}・{{side}}{{/side}}
+{{/spots}}
+{{/nearby}}
 {{#recent}}
 
 # 今回の走行であなたが最近話したこと（繰り返さないこと）

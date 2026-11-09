@@ -30,6 +30,9 @@ object Lines {
         is RideDecision.Defer, is RideDecision.Point, is RideDecision.Chat, RideDecision.Nothing -> null
     }
 
+    /** Before a season's song, without the AI (platform REQ-NEARBY-TALK F-24). */
+    fun song(seasonWord: String, title: String): String = "${seasonWord}の歌を一曲どうぞ。「$title」です。"
+
     /**
      * A spot talked about on an earlier ride, ahead or [passed] (REQ-FREQUENT-WAYS F-11): only
      * that it's the same place again, since what it is was said before.

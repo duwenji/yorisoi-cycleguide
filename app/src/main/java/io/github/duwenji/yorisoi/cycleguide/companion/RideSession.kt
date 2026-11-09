@@ -35,6 +35,17 @@ class RideSession(val startedAt: Long) {
         private set
     val chatTopics: List<ChatTopic> get() = _chatTopics
     private val _chatTopics = mutableListOf<ChatTopic>()
+
+    /** The season's songs played on this ride, and when the last one was (platform REQ-NEARBY-TALK F-23). */
+    var songsPlayed = 0
+        private set
+    var lastSongAt = 0L
+        private set
+
+    fun songPlayed(now: Long) {
+        songsPlayed++
+        lastSongAt = now
+    }
     var lastMilestoneDistanceM = 0.0
         private set
     var restRemarked = false

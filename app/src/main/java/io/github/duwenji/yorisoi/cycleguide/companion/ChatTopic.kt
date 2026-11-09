@@ -11,6 +11,9 @@ enum class ChatTopic(val label: String) {
     NEARBY("周りの見どころ"),
     BODY("体のこと（水分・休憩）"),
     CHANNEL("このチャンネルらしい話題"),
+
+    /** A season's song, played after a word (platform REQ-NEARBY-TALK F-23). */
+    SONG("季節の歌"),
     ;
 
     companion object {
@@ -25,9 +28,10 @@ enum class ChatTopic(val label: String) {
          * [NOT_AGAIN], nor one there is nothing for ([nearbyKnown]: spots around; the body before
          * [BODY_AFTER_MS]). Null when none is left.
          */
-        fun next(recent: List<ChatTopic>, elapsedMs: Long, nearbyKnown: Boolean): ChatTopic? {
+        fun next(recent: List<ChatTopic>, elapsedMs: Long, nearbyKnown: Boolean, songReady: Boolean = false): ChatTopic? {
             val usable = entries.filter {
-                (it != NEARBY || nearbyKnown) && (it != BODY || elapsedMs >= BODY_AFTER_MS) && it !in recent.takeLast(NOT_AGAIN)
+                (it != NEARBY || nearbyKnown) && (it != BODY || elapsedMs >= BODY_AFTER_MS) && (it != SONG || songReady) &&
+                    it !in recent.takeLast(NOT_AGAIN)
             }
             val after = recent.lastOrNull()?.ordinal ?: -1
             return usable.firstOrNull { it.ordinal > after } ?: usable.firstOrNull()

@@ -1,5 +1,10 @@
 package io.github.duwenji.yorisoi.cycleguide.ride
 
+import java.io.File
+import kotlinx.coroutines.flow.first
+import io.github.duwenji.yorisoi.core.format.TalkEventKind
+import io.github.duwenji.yorisoi.kit.songs.SongSeason
+import io.github.duwenji.yorisoi.cycleguide.companion.SongMoment
 import io.github.duwenji.yorisoi.kit.llm.AiRoute
 import io.github.duwenji.yorisoi.cycleguide.companion.ChatTopic
 import io.github.duwenji.yorisoi.kit.geo.NearbyHighlights
@@ -128,6 +133,7 @@ class RideService : LifecycleService() {
                 lifecycleScope.launch { it.past = app.pastTalks(now) }
             }
             local = app.local.startRide()?.also { feed -> lifecycleScope.launch { feed.start() } }
+            app.songs.startWalk()
             if (app.settings.settings.value.developerMode) startDiagnostics(now)
             // The lists, if a day has passed: at the start, never during the ride (API-CHANNEL-LIST 取得の時期).
             app.channels.refreshIfDue()
@@ -350,6 +356,7 @@ class RideService : LifecycleService() {
                 chatReady = app.settings.settings.value.let { it.chat && (it.aiRoute == AiRoute.OPERATOR || it.apiKey().isNotBlank()) },
                 lastChatAt = s.lastChatAt, chatTopics = s.chatTopics,
                 nearbyKnown = app.spots.spots.value.any { !s.alreadyTalked(it) },
+                songReady = songReady(s, station, now),
                 pendingGreeting = s.pendingGreeting, justSwitched = s.justSwitched(now),
                 pointCue = here?.let { pointCue(station, it, s, now) },
                 startedAt = s.startedAt, facilities = facilities,
@@ -377,6 +384,7 @@ class RideService : LifecycleService() {
      */
     private suspend fun carryOut(s: RideSession, decision: RideDecision, now: Long) {
         val station = app.stations.current.value
+        var songAfter: File? = null
         val fixed = Lines.of(decision)?.let { Line(it) }
         val line: Line? = when (decision) {
             is RideDecision.Spot -> {
@@ -424,19 +432,37 @@ class RideService : LifecycleService() {
             }
             is RideDecision.Rest -> talk(s, Prompts.Event.REST, mapOf("minutes" to decision.minutes), station, decision.maxChars) ?: fixed
             is RideDecision.Milestone -> talk(s, Prompts.Event.MILESTONE, emptyMap(), station, decision.maxChars) ?: fixed
-            is RideDecision.Chat -> {
+            is RideDecision.Chat -> if (decision.topic == ChatTopic.SONG) {
+                // A season's song: a word before it, then its melody (platform REQ-NEARBY-TALK F-23, F-24).
+                val song = app.songs.pick(SongMoment.timeOfDay(now), SongMoment.weather(weather), app.songs.recentlyPlayed())
+                val file = song?.let(app.songs::fileOf)
+                if (song == null || file == null || !app.songPlayer.mayPlay()) {
+                    null
+                } else {
+                    s.songPlayed(now)
+                    app.songs.played(song)
+                    app.diagnostics.event("song", "song" to song.id)
+                    songAfter = file
+                    talk(s, Prompts.Event.CHAT, chatVars(decision.topic, song.title), station, decision.maxChars)
+                        ?: Line(Lines.song(SongMoment.seasonWord(SongSeason.now(now)), song.title))
+                }
+            } else {
                 // People's own words come before the AI's chat (platform REQ-NEARBY-TALK D-10).
                 if (idleCues(s, station, motion.state(now), now, maxCharsNow())) return
                 val t = decision.topic
-                talk(
-                    s, Prompts.Event.CHAT,
-                    mapOf("topic" to t.label, "nearby_topic" to (t == ChatTopic.NEARBY), "body_topic" to (t == ChatTopic.BODY), "channel_topic" to (t == ChatTopic.CHANNEL)),
-                    station, decision.maxChars,
-                ) ?: null.also { app.diagnostics.event("chat_unsaid", "topic" to t.name) }
+                talk(s, Prompts.Event.CHAT, chatVars(t, null), station, decision.maxChars)
+                    ?: null.also { app.diagnostics.event("chat_unsaid", "topic" to t.name) }
             }
             else -> fixed
         }
         line?.let { say(it, motion.state(System.currentTimeMillis())) }
+        // The song once the word before it has been read out; the ride's decisions go on and can stop it.
+        songAfter?.let { file ->
+            lifecycleScope.launch {
+                app.speaker.speaking.first { !it }
+                if (session === s) app.songPlayer.play(file)
+            }
+        }
         s.carriedOut(decision, now)
         if (s.talks.size != _talks.value.size) _talks.value = s.talks.toList()
         if (s.spots.size != _talkedSpots.value.size) _talkedSpots.value = s.spots.toList()
@@ -447,7 +473,7 @@ class RideService : LifecycleService() {
      * the rider (platform REQ-STUDIO・REQ-NOTES D-13): read while moving too, never right after a line.
      */
     private suspend fun idleCues(s: RideSession, station: Station, state: MotionState, now: Long, maxChars: Int): Boolean {
-        if (now - maxOf(s.lastSpokeAt, localSaidAt) < LOCAL_GAP_MS) return false
+        if (now - maxOf(s.lastSpokeAt, localSaidAt) < LOCAL_GAP_MS || app.songPlayer.isPlaying) return false
         for (fire in app.cues.idle(station, s.shownCues, now)) {
             val line = app.cues.speak(fire, station, RideContext(state == MotionState.MOVING, maxChars)) ?: continue
             localSaidAt = now
@@ -493,6 +519,22 @@ class RideService : LifecycleService() {
         val spots = app.spots.spots.value.filter { !s.alreadyTalked(it) && it.id != except }
         return NearbyHighlights.pick(spots, here, headingDeg = heading, prefer = station.prefer, skip = station.skip)
     }
+
+    /** The values of `companion/events/chat` for [topic]; [songTitle] for a season's song. */
+    private fun chatVars(topic: ChatTopic, songTitle: String?): Map<String, Any?> = mapOf(
+        "topic" to topic.label, "nearby_topic" to (topic == ChatTopic.NEARBY), "body_topic" to (topic == ChatTopic.BODY),
+        "channel_topic" to (topic == ChatTopic.CHANNEL), "song_topic" to (topic == ChatTopic.SONG), "song_title" to songTitle,
+    )
+
+    /**
+     * Whether a season's song can be played now (platform REQ-NEARBY-TALK F-23, F-26, F-27): the rider
+     * and the channel allow it, the ride does (its length, the songs so far), no other music or call is
+     * on, and a song of the season is kept on the device.
+     */
+    private fun songReady(s: RideSession, station: Station, now: Long): Boolean =
+        app.settings.settings.value.playSongs && TalkEventKind.SONG in station.events &&
+            SongMoment.allowed(now - s.startedAt, s.songsPlayed, s.lastSongAt, now) && app.songPlayer.mayPlay() &&
+            app.songs.pick(SongMoment.timeOfDay(now), SongMoment.weather(weather), app.songs.recentlyPlayed()) != null
 
     /** The point cue the rider at [here] is inside, if any may still fire (F-32). */
     private fun pointCue(station: Station, here: LatLon, s: RideSession, now: Long): PointCue? {
@@ -550,6 +592,8 @@ class RideService : LifecycleService() {
 
     private fun say(line: Line, state: MotionState) {
         Log.i(TAG, "say: ${line.text} (${line.credit})")
+        // Whatever the companion says next, a song gives way to it (platform REQ-NEARBY-TALK F-25).
+        if (app.songPlayer.isPlaying) lifecycleScope.launch { app.songPlayer.stop() }
         app.diagnostics.event("said", "text" to line.text, "credit" to line.credit, "chars" to SpeechBudget.chars(line.text), "state" to state.name)
         app.speaker.speak(line.text)
         session?.remember(line.text)

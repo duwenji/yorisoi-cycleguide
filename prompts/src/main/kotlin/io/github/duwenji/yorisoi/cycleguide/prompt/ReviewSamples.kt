@@ -81,7 +81,7 @@ object ReviewSamples {
             // platform REQ-NEARBY-TALK F-14: a word between the other lines, on the spots around.
             talk(
                 "ride-chat", "話すことがないときの雑談（周りの見どころ・走行中）", RIDING_CHARS, Prompts.Event.CHAT, midRide,
-                mapOf("topic" to "周りの見どころ", "nearby_topic" to true, "body_topic" to false, "channel_topic" to false),
+                mapOf("topic" to "周りの見どころ", "nearby_topic" to true, "body_topic" to false, "channel_topic" to false, "song_topic" to false, "song_title" to null),
             ).takeIf { TalkEventKind.CHAT in events },
             talk(
                 "ride-finish", "走行の終わりの振り返り", REST_CHARS, Prompts.Event.FINISH, finished,

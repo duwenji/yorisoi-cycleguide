@@ -16,7 +16,7 @@ class ReviewSamplesTest {
     fun `the standard channel has every scene the app sends`() {
         val samples = ReviewSamples.build(standard, standard, prompts)
         assertEquals(
-            listOf("ride-guide-temple", "ride-guide-small", "ride-guide-passed", "ride-guide-again", "ride-guide-nearby", "ride-guide-grounded", "ride-rest", "ride-milestone", "ride-finish"),
+            listOf("ride-guide-temple", "ride-guide-small", "ride-guide-passed", "ride-guide-again", "ride-guide-nearby", "ride-guide-grounded", "ride-rest", "ride-milestone", "ride-chat", "ride-finish"),
             samples.map { it.id },
         )
         samples.forEach { s ->

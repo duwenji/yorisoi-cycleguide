@@ -26,7 +26,8 @@ object Lines {
         is RideDecision.AmenityNear -> amenity(decision.advice)
         is RideDecision.Rest -> "ひと休みですね。水分をとっておきましょう。"
         is RideDecision.Milestone -> "ここまで順調です。"
-        is RideDecision.Defer, is RideDecision.Point, RideDecision.Nothing -> null
+        // A chat has no fixed line: without the AI it isn't said (platform REQ-NEARBY-TALK F-17).
+        is RideDecision.Defer, is RideDecision.Point, is RideDecision.Chat, RideDecision.Nothing -> null
     }
 
     /**

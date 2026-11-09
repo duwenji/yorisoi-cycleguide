@@ -29,6 +29,12 @@ class RideSession(val startedAt: Long) {
         private set
     var lastSpotTalkAt = 0L
         private set
+
+    /** When a chat was last tried, said or not, and the chats' topics so far (platform REQ-NEARBY-TALK F-15). */
+    var lastChatAt = 0L
+        private set
+    val chatTopics: List<ChatTopic> get() = _chatTopics
+    private val _chatTopics = mutableListOf<ChatTopic>()
     var lastMilestoneDistanceM = 0.0
         private set
     var restRemarked = false
@@ -180,6 +186,10 @@ class RideSession(val startedAt: Long) {
             }
             is RideDecision.Rest -> restRemarked = true
             is RideDecision.Milestone -> lastMilestoneDistanceM = distanceM
+            is RideDecision.Chat -> {
+                lastChatAt = now
+                _chatTopics += decision.topic
+            }
             RideDecision.Nothing -> return
         }
         lastSpokeAt = now

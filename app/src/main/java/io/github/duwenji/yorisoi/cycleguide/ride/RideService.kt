@@ -1,5 +1,7 @@
 package io.github.duwenji.yorisoi.cycleguide.ride
 
+import io.github.duwenji.yorisoi.kit.llm.AiRoute
+import io.github.duwenji.yorisoi.cycleguide.companion.ChatTopic
 import io.github.duwenji.yorisoi.kit.geo.NearbyHighlights
 import io.github.duwenji.yorisoi.kit.geo.NearbyHighlight
 import android.annotation.SuppressLint
@@ -345,6 +347,9 @@ class RideService : LifecycleService() {
                 distanceM = s.distanceM, lastSpokeAt = s.lastSpokeAt, lastSpotTalkAt = s.lastSpotTalkAt,
                 lastMilestoneDistanceM = s.lastMilestoneDistanceM, restRemarked = s.restRemarked,
                 sunsetWarned = s.sunsetWarned, weatherWarnedAt = s.weatherWarnedAt,
+                chatReady = app.settings.settings.value.let { it.chat && (it.aiRoute == AiRoute.OPERATOR || it.apiKey().isNotBlank()) },
+                lastChatAt = s.lastChatAt, chatTopics = s.chatTopics,
+                nearbyKnown = app.spots.spots.value.any { !s.alreadyTalked(it) },
                 pendingGreeting = s.pendingGreeting, justSwitched = s.justSwitched(now),
                 pointCue = here?.let { pointCue(station, it, s, now) },
                 startedAt = s.startedAt, facilities = facilities,
@@ -419,6 +424,16 @@ class RideService : LifecycleService() {
             }
             is RideDecision.Rest -> talk(s, Prompts.Event.REST, mapOf("minutes" to decision.minutes), station, decision.maxChars) ?: fixed
             is RideDecision.Milestone -> talk(s, Prompts.Event.MILESTONE, emptyMap(), station, decision.maxChars) ?: fixed
+            is RideDecision.Chat -> {
+                // People's own words come before the AI's chat (platform REQ-NEARBY-TALK D-10).
+                if (idleCues(s, station, motion.state(now), now, maxCharsNow())) return
+                val t = decision.topic
+                talk(
+                    s, Prompts.Event.CHAT,
+                    mapOf("topic" to t.label, "nearby_topic" to (t == ChatTopic.NEARBY), "body_topic" to (t == ChatTopic.BODY), "channel_topic" to (t == ChatTopic.CHANNEL)),
+                    station, decision.maxChars,
+                ) ?: null.also { app.diagnostics.event("chat_unsaid", "topic" to t.name) }
+            }
             else -> fixed
         }
         line?.let { say(it, motion.state(System.currentTimeMillis())) }
@@ -431,15 +446,16 @@ class RideService : LifecycleService() {
      * When the ride has nothing to say, the channel's idle cues in turn: a studio or a note around
      * the rider (platform REQ-STUDIO・REQ-NOTES D-13): read while moving too, never right after a line.
      */
-    private suspend fun idleCues(s: RideSession, station: Station, state: MotionState, now: Long, maxChars: Int) {
-        if (now - maxOf(s.lastSpokeAt, localSaidAt) < LOCAL_GAP_MS) return
+    private suspend fun idleCues(s: RideSession, station: Station, state: MotionState, now: Long, maxChars: Int): Boolean {
+        if (now - maxOf(s.lastSpokeAt, localSaidAt) < LOCAL_GAP_MS) return false
         for (fire in app.cues.idle(station, s.shownCues, now)) {
             val line = app.cues.speak(fire, station, RideContext(state == MotionState.MOVING, maxChars)) ?: continue
             localSaidAt = now
             app.diagnostics.event("local", "kind" to if (line.local is Reading.OfNote) "note" else "studio")
             say(line, state)
-            return
+            return true
         }
+        return false
     }
 
     /** The fixed line for a spot talked about on an earlier ride (REQ-FREQUENT-WAYS F-11); null for a new one. */
@@ -521,6 +537,7 @@ class RideService : LifecycleService() {
         is RideDecision.WeatherTurn -> "${d.change.kind} ${d.change.minutes}min"
         is RideDecision.AmenityNear -> "${d.advice.facility.kind.name} ${d.advice.distanceM}m ${d.advice.side}"
         is RideDecision.Rest -> d.minutes
+        is RideDecision.Chat -> d.topic.name
         else -> null
     }
 

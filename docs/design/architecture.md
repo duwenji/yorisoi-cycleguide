@@ -60,7 +60,7 @@ flowchart LR
   Loc["位置の更新<br/>2 秒ごと（止まっていても）"] --> Motion
   Motion["Motion<br/>動いている／信号待ち／休憩"] --> Talk
   Tick["タイマー 5 秒"] --> Talk
-  Talk["<b>RideDecider.decide()</b><br/>① 天気の急変（安全）<br/>② 日の入り・ライト（安全）<br/>── ここから話さない場面を守る ──<br/>③ チャンネルを切り替えた直後の一言<br/>④ 前方の見どころ（動いているとき。きっかけがあればその話）<br/>④′ きっかけの地点（段階 2）<br/>⑤ 取っておいた話（止まったとき）<br/>⑥ ルートから外れた（段階 3）<br/>⑦ 坂の予告（段階 3）<br/>── ここから雑談の間隔を守る ──<br/>⑧ 施設の案内（段階 2）<br/>⑨ 休憩の話（休憩のとき）<br/>⑩ 距離・時間の区切り"]
+  Talk["<b>RideDecider.decide()</b><br/>① 天気の急変（安全）<br/>② 日の入り・ライト（安全）<br/>── ここから話さない場面を守る ──<br/>③ チャンネルを切り替えた直後の一言<br/>④ 前方の見どころ（動いているとき。きっかけがあればその話）<br/>④′ きっかけの地点（段階 2）<br/>⑤ 取っておいた話（止まったとき）<br/>⑥ ルートから外れた（段階 3）<br/>⑦ 坂の予告（段階 3）<br/>── ここから雑談の間隔を守る ──<br/>⑧ 施設の案内（段階 2）<br/>⑨ 休憩の話（休憩のとき）<br/>⑩ 距離・時間の区切り<br/>⑪ 雑談（走っているとき。AI と設定の「雑談をする」があるときだけ。話題は ChatTopic が順に選ぶ。スタジオ・一言が先）"]
   Talk --> Budget["SpeechBudget<br/>今の上限の字数"]
   Budget --> Compose["文を作る<br/>AI に上限の字数を渡す"]
   Compose --> Fit{上限に収まる?}
@@ -156,7 +156,7 @@ flowchart LR
 | 見つけ方と残し方（F-3・F-4・F-12） | kit-geo の `FrequentWayFinder`（サイクルの値: 3 回・500 m・30 m 以内。`CycleApp.WAY_FINDER`）と `FrequentWayStore`（`files/ways.json`）を使います。走行を残すとき（`CycleApp.keepRide`）に、過去 60 日の走行（`RideHistory.since`）と比べて、通った道の回数を増やし、設定の「よく通る道を自動で見つける」が入なら新しい道を探します。名前は、その走行で出会った見どころから付けます（`FrequentWayFinder.nameFrom`）。通った道と何回目か、新しくできた道は `RideRecord.ways`（`RideWay`）に入れ、履歴の 1 件の画面に出します（D-12）。終了のボタンでもサービスが止められたときも同じです |
 | 前もっての取得（F-6〜F-8・D-9） | `ways` の `WayPrefetchWorker`（WorkManager）が、`SpotRepository.prefetch` で道に沿って取っておきます。1 日 1 回（起動時に `scheduleDaily`）と、走行を残したあとに 1 回（`afterRide`）。どちらも従量制でないネットワークで、電池が少なくないときだけ。走行中に動いたら何もしません。道は最後に通った日の新しい順に渡し、1 回で運営のタイル 40 枚・Overpass 20 問い合わせまでです |
 | 前に話した見どころ（F-9〜F-11・D-11） | 走行の開始時に、過去 60 日の走行の話（`SpotTalk`）から `PastTalks` を作り、`RideSession.past` に入れます。同じ見どころかは、ID が同じか、同じ名前で 200 m 以内です（SanpoGuide の再訪と同じ）。前の話から 24 時間たっていない見どころは、ルール ④ で選びません（`AheadSpot.talkedRecently`。きっかけで指された見どころは除く）。24 時間より前に話した見どころは、AI の依頼に前の文を入れ（`guide/user` の `before`。「# 前の走行で話したこと」）、別の切り口で話させます。前の文にしか書いていない事実は使わせません（前の文は AI が作ったもので、作り話が混ざりうるため）。AI が使えないときの定型の文は「また〇〇の横を通ります。」（通り過ぎたあとは「さきほどは、また〇〇の横を通りました。」）です |
-| 周りの見どころ（platform REQ-NEARBY-TALK F-6〜F-9） | `RideService.nearby` が、kit-geo の `NearbyHighlights` で約 1km 以内から、今回の走行で話していない見どころを最大 6 件選びます（チャンネルの `spots.prefer`・`skip` に従う）。見どころの案内（`guide/user` の `nearby`）には名前と種別だけを、休憩と区切りの話しかけ（`companion/situation` の `nearby`）には距離（50m 単位）・方角（8 方位）・進む向きから見た側も渡します。案内には地図データの情報（kit-geo `SpotFacts`、`facts`）も渡し、タグと同じく事実として使わせます |
+| 周りの見どころ（platform REQ-NEARBY-TALK F-6〜F-9） | `RideService.nearby` が、kit-geo の `NearbyHighlights` で約 1km 以内から、今回の走行で話していない見どころを最大 6 件選びます（チャンネルの `spots.prefer`・`skip` に従う）。見どころの案内（`guide/user` の `nearby`）には名前と種別だけを、休憩・区切り・雑談の話しかけ（`companion/situation` の `nearby`）には距離（50m 単位）・方角（8 方位）・進む向きから見た側も渡します。案内には地図データの情報（kit-geo `SpotFacts`、`facts`）も渡し、タグと同じく事実として使わせます |
 | 画面（F-13〜F-18） | 設定の「よく通る道」に、自動で見つけるかの切り替えと、kit-geo の `FrequentWaysScreen`（言葉は `WayWords.RIDE`）を開くボタン（走行中は出さない）を置きます。`FrequentWaysScreen` は一覧（名前・長さ・回数・最後に通った日・作り方）と 1 件の画面（地図・名前の変更・保存・削除・その道で話した見どころ）です。その道で話した見どころは、過去 60 日の走行で、道から 100 m 以内の見どころの最後の話です（`WaySections.talksOn`）。履歴の 1 件の画面の「この走行からよく通る道を作る」は、地図と範囲のつまみ（最初は両端の 200 m を除く）で始まりと終わりを選び、名前を付けて保存します（kit-geo の `NewWayFromTrip`）。履歴を消すと、保存していない自動の道と消した道の記録も消します（`CycleApp.clearHistory`） |
 
 ### その場の素材（スタジオ・一言。platform REQ-STUDIO・REQ-NOTES）

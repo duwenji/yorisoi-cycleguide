@@ -1,6 +1,9 @@
 package io.github.duwenji.yorisoi.cycleguide.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,9 +47,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.duwenji.yorisoi.kit.ui.ScreenBar
+import kotlinx.coroutines.withTimeoutOrNull
 import io.github.duwenji.yorisoi.cycleguide.R
 import io.github.duwenji.yorisoi.cycleguide.companion.Lines
 import io.github.duwenji.yorisoi.cycleguide.guide.Line
@@ -183,10 +190,34 @@ private fun BigButton(icon: ImageVector, text: String, onClick: () -> Unit, enab
     else Button(onClick = onClick, enabled = enabled, modifier = modifier) { content() }
 }
 
-/** While moving: nothing to read, only that a ride is on (requirements S-1, AC-7). */
+/**
+ * While moving: nothing to read, only that a ride is on (requirements S-1, AC-7). Held down for
+ * [FINISH_HOLD_MS], the ride ends (S-2): a hold, not a tap, so a touch by chance doesn't end it.
+ */
 @Composable
-fun RidingScreen() {
-    Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-        Text("走行中", color = Color.Gray, style = MaterialTheme.typography.headlineSmall)
+fun RidingScreen(finishing: Boolean, onStop: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
+    Box(
+        Modifier.fillMaxSize().background(Color.Black).pointerInput(finishing) {
+            if (finishing) return@pointerInput
+            awaitEachGesture {
+                awaitFirstDown()
+                // Null when held long enough: the finger stayed down.
+                val released = withTimeoutOrNull(FINISH_HOLD_MS) { waitForUpOrCancellation() }
+                if (released == null) {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onStop()
+                }
+            }
+        },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(if (finishing) "振り返り中…" else "走行中", color = Color.Gray, style = MaterialTheme.typography.headlineSmall)
+            if (!finishing) Text("長押しで走行を終える", color = Color.DarkGray, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
+
+/** How long the riding screen is held to end the ride. */
+private const val FINISH_HOLD_MS = 2_000L

@@ -10,7 +10,7 @@ import org.junit.Test
 /** Moving, waiting at a light, resting (requirements F-3, AC-2, AC-26). */
 class MotionTest {
     private val start = 1_000_000L
-    private val motion = Motion { StyleValues(RideStyles.POTTERING) }
+    private val motion = Motion({ StyleValues(RideStyles.POTTERING) }, start)
 
     /** Where the rider is, going north at the speed of the fixes. */
     private var here = LatLon(35.0, 139.0)
@@ -48,6 +48,29 @@ class MotionTest {
         assertEquals(MotionState.REST, motion.state(t))
         t = ride(t, 6, 4.2f)
         assertEquals(MotionState.MOVING, motion.state(t))
+    }
+
+    @Test
+    fun `a ride starts stopped until a fix tells it moves`() {
+        assertEquals(MotionState.SIGNAL_STOP, motion.state(start + 5_000))
+        assertEquals(MotionState.SIGNAL_STOP, motion.state(start + 10_000))
+        assertEquals(MotionState.REST, motion.state(start + 180_000))
+        val t = ride(start + 180_000, 6, 4.2f)
+        assertEquals(MotionState.MOVING, motion.state(t))
+    }
+
+    @Test
+    fun `indoors at the start, fixes without a usable speed are no moving`() {
+        var t = start
+        repeat(10) {
+            t += 2_000
+            motion.onFix(t, here, null, 20f)
+        }
+        repeat(10) {
+            t += 2_000
+            motion.onFix(t, here, 3f, 80f)
+        }
+        assertEquals(MotionState.SIGNAL_STOP, motion.state(t))
     }
 
     @Test

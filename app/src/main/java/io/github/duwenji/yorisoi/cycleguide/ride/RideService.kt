@@ -86,7 +86,7 @@ import java.util.Locale
 class RideService : LifecycleService() {
     private val app get() = application as CycleApp
     private val fused by lazy { LocationServices.getFusedLocationProviderClient(this) }
-    private val motion = Motion { app.settings.settings.value.values }
+    private val motion = Motion({ app.settings.settings.value.values }, System.currentTimeMillis())
     private val earphones by lazy { EarphoneWatch(this) }
 
     private var session: RideSession? = null

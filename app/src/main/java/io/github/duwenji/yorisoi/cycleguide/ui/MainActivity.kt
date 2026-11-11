@@ -67,8 +67,8 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(state) { if (state == MotionState.MOVING) studio.cancelNote() }
                 if (state != MotionState.MOVING) NoteFlow(studio)
                 when {
-                    // Nothing to read while moving (requirements S-1).
-                    state == MotionState.MOVING -> RidingScreen()
+                    // Nothing to read while moving (requirements S-1); held down, the ride ends (S-2).
+                    state == MotionState.MOVING -> RidingScreen(finishing, onStop = { RideService.stop(this) })
                     // Not during a ride: lists are fetched at its start, never during it (API-CHANNEL-LIST 取得の時期).
                     showChannels && state == null -> {
                         BackHandler { showChannels = false }

@@ -21,12 +21,19 @@ enum class MotionState { MOVING, SIGNAL_STOP, REST }
  * gap, a stop is counted from the first fix (requirements AC-26). An inaccurate fix (resting under
  * a roof) isn't a gap: only its speed isn't used.
  *
+ * A ride starts stopped: until a fix tells it moves (indoors, the fixes may have no speed or be
+ * inaccurate), it is stopped since [startedAt], and at least waiting at a light, so the screen to
+ * finish it stays.
+ *
  * @param values the ride style's, read at each [state]
  */
-class Motion(private val values: () -> StyleValues) {
+class Motion(private val values: () -> StyleValues, startedAt: Long) {
     private val speeds = ArrayDeque<Float>()
     private var lastFixAt: Long? = null
-    private var stoppedSince: Long? = null
+    private var stoppedSince: Long? = startedAt
+
+    /** No fix has told the rider moves yet on this ride. */
+    private var notMovedYet = true
 
     /** Where the rider was last slow, while stopped. */
     private var slowAt: LatLon? = null
@@ -46,6 +53,7 @@ class Motion(private val values: () -> StyleValues) {
         val stillThere = stoppedSince != null &&
             slowAt?.let { RouteGeometry.distanceM(it, position) < maxOf(STILL_M, (accuracyM ?: 0f).toDouble()) } == true
         if (!slow && !stillThere) {
+            notMovedYet = false
             stoppedSince = null
             slowAt = null
             return
@@ -68,7 +76,7 @@ class Motion(private val values: () -> StyleValues) {
         val v = values()
         return when {
             stopped >= v.ms(StyleItem.REST_MIN) -> MotionState.REST
-            stopped >= v.ms(StyleItem.SIGNAL_STOP_SEC) -> MotionState.SIGNAL_STOP
+            stopped >= v.ms(StyleItem.SIGNAL_STOP_SEC) || notMovedYet -> MotionState.SIGNAL_STOP
             else -> MotionState.MOVING
         }
     }
